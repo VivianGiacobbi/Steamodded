@@ -50,6 +50,13 @@ payload = '''self.original_T = copy_table(self.T)'''
 [[patches]]
 [patches.pattern]
 target = 'card.lua'
+pattern = '''self.T.scale = 0.95'''
+position = 'after'
+match_indent = true
+payload = '''self.original_T = copy_table(self.T)'''
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
 match_indent = true
 position = 'before'
 pattern = '''
