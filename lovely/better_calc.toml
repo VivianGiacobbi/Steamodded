@@ -180,6 +180,7 @@ if card.ability.set == 'Enhanced' then
         ret.enhancement = enhancement
     end
 end
+if context.extra_enhancement then return ret end
 if card.edition then
     local edition = card:calculate_edition(context)
     if edition then
@@ -214,6 +215,7 @@ if card.ability.set == 'Enhanced' then
         ret.enhancement = enhancement
     end
 end
+if context.extra_enhancement then return ret end
 if card.edition then
     local edition = card:calculate_edition(context)
     if edition then

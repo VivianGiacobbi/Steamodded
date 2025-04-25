@@ -138,6 +138,14 @@ function SMODS.calculate_individual_effect(effect, scored_card, key, amount, fro
 --- Handles calculating effects on provided `scored_card`. 
 function SMODS.calculate_effect(effect, scored_card, from_edition, pre_jokers) end
 
+---@param effect_table table
+---@param key string
+---@param card Card|table
+---@param ret table
+--- Internal helper for SMODS.calculate_effect.
+--- Calculate one key of an effect table returned from eval_card.
+function SMODS.calculate_effect_table_key(effect_table, key, card, ret) end
+
 ---@param effects table
 ---@param card Card|table
 --- Used to calculate a table of effects generated in evaluate_play

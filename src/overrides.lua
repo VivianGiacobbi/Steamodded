@@ -1804,14 +1804,7 @@ function Card:get_chip_bonus()
         return gcb(self)
     end
     if self.debuff then return 0 end
-    return self.ability.bonus + (self.ability.perma_bonus or 0)
-end
-
--- prevent quantum enhacements from applying seal effects
-local ccs = Card.calculate_seal
-function Card:calculate_seal(context)
-	if self.ability.extra_enhancement then return end
-	return ccs(self, context)
+    return self.ability.bonus
 end
 --#endregion
 

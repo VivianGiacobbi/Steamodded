@@ -2943,9 +2943,6 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         -- if true, enhanced card is any suit
         -- always_scores
         -- if true, card always scores
-        -- loc_subtract_extra_chips
-        -- During tooltip generation, number of chips to subtract from displayed extra chips.
-        -- Use if enhancement already displays its own chips.
         -- Future work: use ranks() and suits() for better control
         register = function(self)
             self.config = self.config or {}
