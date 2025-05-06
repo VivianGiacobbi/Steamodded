@@ -162,7 +162,7 @@ payload = "if not v.omit and not v.no_collection then"
 target = "functions/misc_functions.lua"
 pattern = "if v.set == 'Joker' then"
 position = "at"
-payload = "if v.set == 'Joker' and not v.omit then "
+payload = "if v.set == 'Joker' and not v.no_collection then "
 match_indent = true
 times = 1
 
