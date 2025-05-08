@@ -428,7 +428,7 @@ function SMODS.restart_game()
     if love.system.getOS() ~= 'OS X' then
         love.thread.newThread("os.execute(...)\n"):start('"' .. arg[-2] .. '" ' .. table.concat(arg, " "))
     else
-        os.execute('sh "/Users/$USER/Library/Application Support/Steam/steamapps/common/Balatro/run_lovely.sh" &')
+        os.execute('sh "/Users/$USER/Library/Application Support/Steam/steamapps/common/Balatro/run_lovely_macos.sh" &')
     end
 
     love.event.quit()
