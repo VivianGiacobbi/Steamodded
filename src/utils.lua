@@ -225,6 +225,7 @@ function SMODS.handle_loc_file(path, mod_id)
 end
 
 function SMODS.insert_pool(pool, center, replace)
+    assert(pool, ("Attempted to insert object \"%s\" into an empty pool."):format(center.key or "UNKNOWN"))
     if replace == nil then replace = center.taken_ownership end
     if replace then
         for k, v in ipairs(pool) do
@@ -242,6 +243,7 @@ function SMODS.insert_pool(pool, center, replace)
 end
 
 function SMODS.remove_pool(pool, key)
+    assert(pool, ("Attempted to remove object \"%s\" from an empty pool."):format(key or "UNKNOWN"))
     local j
     for i, v in ipairs(pool) do
         if v.key == key then j = i end
@@ -1171,13 +1173,22 @@ G.FUNCS.update_suit_colours = function(suit, skin, palette_num)
 end
 
 SMODS.smart_level_up_hand = function(card, hand, instant, amount)
-    local old_text = copy_table(G.GAME.current_round.current_hand)
+    -- Cases:
+    -- Level ups in context.before on the played hand
+    --     -> direct level_up_hand(), keep displaying
+    -- Level ups in context.before on another hand AND any level up during scoring
+    --     -> restore the current chips/mult
+    -- Level ups outside anything -> always update to empty chips/mult
+    local vals_after_level
+    if SMODS.displaying_scoring and not (SMODS.displayed_hand == hand) then
+        vals_after_level = copy_table(G.GAME.current_round.current_hand)
+    end
     if not (instant or SMODS.displayed_hand == hand) then
         update_hand_text({sound = 'button', volume = 0.7, pitch = 0.8, delay = 0.3}, {handname=localize(hand, 'poker_hands'),chips = G.GAME.hands[hand].chips, mult = G.GAME.hands[hand].mult, level=G.GAME.hands[hand].level})
     end
     level_up_hand(card, hand, instant, type(amount) == 'number' and amount or 1)
     if not (instant or SMODS.displayed_hand == hand) then
-        update_hand_text({sound = 'button', volume = 0.7, pitch = 1.1, delay = 0}, {mult = old_text.mult, chips = old_text.chips, handname = old_text.handname, level = old_text.handname ~= "" and G.GAME.hands[G.GAME.last_hand_played].level or ''})
+        update_hand_text({sound = 'button', volume = 0.7, pitch = 1.1, delay = 0}, vals_after_level or {mult = 0, chips = 0, handname = '', level = ''})
     end
 end
 
@@ -2237,7 +2248,7 @@ function SMODS.seeing_double_check(hand, suit)
     if saw_double(suit_tally, suit) then return true else return false end
 end
 
-function SMODS.localize_box(lines, args)   
+function SMODS.localize_box(lines, args)
     local final_line = {}
     for _, part in ipairs(lines) do
         local assembled_string = ''
