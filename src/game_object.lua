@@ -883,6 +883,11 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
             for _, v in pairs(SMODS.Rarities) do
                 if v.pools and v.pools[self.key] and not injected_rarities[v.key] then SMODS.inject_rarity(self, v) end
             end
+            if self.cards then
+                for k, v in pairs(G.P_CENTERS) do
+                    if self.cards[k] then self:inject_card(v) end
+                end
+            end
         end,
         inject_card = function(self, center)
             if center.set ~= self.key then SMODS.insert_pool(G.P_CENTER_POOLS[self.key], center) end
