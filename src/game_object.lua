@@ -3242,6 +3242,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         weight = 20,
         extra_cost = 2,
         in_shop = true,
+        vanilla = true,
         get_weight = function(self)
             return G.GAME.edition_rate * self.weight
         end,
@@ -3274,6 +3275,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         weight = 14,
         extra_cost = 3,
         in_shop = true,
+        vanilla = true,
         get_weight = function(self)
             return G.GAME.edition_rate * self.weight
         end,
@@ -3306,6 +3308,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         weight = 3,
         extra_cost = 5,
         in_shop = true,
+        vanilla = true,
         get_weight = function(self)
             return (G.GAME.edition_rate - 1) * G.P_CENTERS["e_negative"].weight + G.GAME.edition_rate * self.weight
         end,
@@ -3338,6 +3341,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         weight = 3,
         extra_cost = 5,
         in_shop = true,
+        vanilla = true,
         get_weight = function(self)
             return self.weight
         end,
