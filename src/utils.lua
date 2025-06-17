@@ -2494,3 +2494,8 @@ function SMODS.merge_effects(...)
     end
     return ret
 end
+
+G.FUNCS.update_blind_debuff_text = function(e)
+    if not e.config.object then return end
+    e.config.object.string = SMODS.debuff_text or G.GAME.blind:get_loc_debuff_text()
+end
