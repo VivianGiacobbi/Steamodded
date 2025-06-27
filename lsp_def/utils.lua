@@ -610,3 +610,23 @@ function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_
 ---@return boolean
 ---Checks if handname is visible in the poker hands menu.
 function SMODS.is_poker_hand_visible(handname) end
+
+--- @param card table
+--- @param tree table Empty table to save the tree to
+--- @param card_table table | nil leave nil on non-recursive call
+--- @param key string | nil leave nil on non-recursive call
+--- @param first_pass boolean | nil leave nil on non-recursive call
+--- Recursively creates proxies of a card's ability table
+function SMODS.create_ability_proxies(card, tree, card_table, key, first_pass) end
+
+--- @param parent table
+--- @param proxy_tree table Proxy tree provided by SMODS.create_ability_proxies
+--- @param key string | nil leave nil on non-recursive call
+--- Recursively creates proxies of a card's ability table
+function SMODS.reset_recursive_proxies(parent, proxy_tree, key) end
+
+--- Sets proxies of the ability table for context.card_scale
+function Card:set_ability_proxy() end
+
+--- Removes ability proxies for saving purposes
+function Card:remove_ability_proxy() end
