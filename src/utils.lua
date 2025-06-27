@@ -1251,7 +1251,7 @@ local valid_message_keys = {
 -- Can easily be hooked to add more calculation effects ala Talisman
 SMODS.calculate_individual_effect = function(effect, scored_card, key, amount, from_edition)
     local old_card = effect.card
-    if SMODS.optional_features.scale_context and (next(SMODS.skip_scale_message) or next(SMODS.mod_scale_message)) then
+    if SMODS.optional_features.scale_context and (next(SMODS.overwrite_scale_message) or next(SMODS.mod_scale_message)) then
         local key_valid = false
         for k, _ in pairs(effect) do
             if valid_message_keys[k] then
@@ -1260,12 +1260,12 @@ SMODS.calculate_individual_effect = function(effect, scored_card, key, amount, f
             end
         end
         
-        if next(SMODS.skip_scale_message) and not key_valid and (not effect.card or (effect.card and not effect.card.playing_card)) then
+        if next(SMODS.overwrite_scale_message) and not key_valid and (not effect.card or (effect.card and not effect.card.playing_card)) then
             -- prevents a card from ticking when the message is passed up
             effect.card = nil
         elseif key_valid then
             SMODS.mod_scale_message = {}
-            SMODS.skip_scale_message = {}
+            SMODS.overwrite_scale_message = {}
         end
     end
 
@@ -2655,11 +2655,10 @@ SMODS.valid_scaling_keys = {
 	['perma_p_dollars'] = true,
 	['perma_h_dollars'] = true,
 	['caino_xmult'] = true,
-	['yorick_discards'] = true,
 	['invis_rounds'] = true
 }
 
-SMODS.skip_scale_message = {}
+SMODS.overwrite_scale_message = {}
 SMODS.anticipate_scale_message = {}
 SMODS.mod_scale_message = {}
 
@@ -2755,12 +2754,12 @@ function SMODS.create_ability_proxies(card, tree, card_table, key, first_pass)
                 SMODS.trigger_effects({eval}, joker)
             end
 
-            if ret.prevent_scale then 
-                SMODS.skip_scale_message = { card = card }
+            if ret.prevent_scale or ret.overwrite then 
+                SMODS.overwrite_scale_message = { card = card, overwrite_message = ret.overwrite, skip = (not not ret.prevent_scale) }
                 return
             end
 
-            SMODS.skip_scale_message = {}
+            SMODS.overwrite_scale_message = {}
 
             local new_val = v
             if ret.overwrite then

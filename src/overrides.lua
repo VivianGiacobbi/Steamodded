@@ -2346,11 +2346,16 @@ function card_eval_status_text(card, eval_type, amt, percent, dir, extra)
 		return card_status_text(card, eval_type, amt, percent, dir, extra)
 	end
 
-	if SMODS.skip_scale_message.card == card then
-		return
+	if SMODS.overwrite_scale_message.card == card then
+		if SMODS.overwrite_scale_message.skip then return end
+
+		if SMODS.overwrite_scale_message.overwrite_message then
+			extra.message = SMODS.overwrite_scale_message.overwrite_message
+			return card_status_text(card, eval_type, amt, percent, dir, extra)
+		end
 	end
 
-	SMODS.skip_scale_message = {}
+	SMODS.overwrite_scale_message = {}
 	if SMODS.mod_scale_message.card == card then
 		if amt then
 			amt = amt * (SMODS.mod_scale_message.mod or 1) + (SMODS.mod_scale_message.add or 0)
