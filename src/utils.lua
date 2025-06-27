@@ -1437,6 +1437,10 @@ SMODS.calculate_individual_effect = function(effect, scored_card, key, amount, f
     if key == 'numerator' or key == 'denominator' then
         return { [key] = amount }
     end
+
+    if key == 'no_destroy' then
+        return { [key] = amount }
+    end
 end
 
 -- Used to calculate a table of effects generated in evaluate_play
@@ -1492,7 +1496,9 @@ SMODS.calculate_effect = function(effect, scored_card, from_edition, pre_jokers)
             elseif type(calc) == 'table' then
                 for k,v in pairs(calc) do ret[k] = v end
             end
-            percent = (percent or 0) + (percent_delta or 0.08)
+            if not SMODS.silent_calculation[key] then
+                percent = (percent or 0) + (percent_delta or 0.08)
+            end
         end
     end
     return ret
@@ -1512,7 +1518,18 @@ SMODS.calculation_keys = {
     'cards_to_draw',
     'message',
     'level_up', 'func', 'extra',
-    'numerator', 'denominator'
+    'numerator', 'denominator',
+    'no_destroy'
+}
+SMODS.silent_calculation = {
+    saved = true, effect = true, remove = true,
+    debuff = true, prevent_debuff = true, debuff_text = true,
+    add_to_hand = true, remove_from_hand = true,
+    stay_flipped = true, prevent_stay_flipped = true,
+    cards_to_draw = true,
+    func = true, extra = true,
+    numerator = true, denominator = true,
+    no_destroy = true
 }
 
 SMODS.insert_repetitions = function(ret, eval, effect_card, _type)
@@ -2536,9 +2553,11 @@ function SMODS.merge_effects(...)
 end
 
 function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator)
+    if not G.jokers then return base_numerator, base_denominator end
     local additive = SMODS.calculate_context({mod_probability = true, numerator = base_numerator, denominator = base_denominator})
+    additive.numerator = (additive.numerator or base_numerator) * ((G.GAME and G.GAME.probabilities.normal or 1) / (2 ^ #SMODS.find_card('j_oops')))
     local fixed = SMODS.calculate_context({fix_probability = true, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator})
-    return (fixed.numerator or additive.numerator or base_numerator) * (G.GAME and G.GAME.probabilities.normal or 1), fixed.denominator or additive.denominator or base_denominator
+    return fixed.numerator or additive.numerator or base_numerator, fixed.denominator or additive.denominator or base_denominator
 end
 
 function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_denominator)
