@@ -596,15 +596,16 @@ function SMODS.merge_effects(...) end
 function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator) end
 
 ---@param trigger_obj Card|table
----@param seed string|number
 ---@param base_numerator number
 ---@param base_denominator number
+---@param seed string|number
+---@param seed_key string|nil optional seed key, automatically filled if pseudoseed() is called for seed
 ---@return boolean
 --- Sets the seed to `seed` and runs a *`base_numerator` in `base_denominator`* listed probability check. 
 --- Returns `true` if the probability succeeds. You do not need to multiply `base_numerator` by `G.GAME.probabilities.normal`. 
 --- 
 --- Can be hooked to run code when a listed probability succeeds and/or fails. `trigger_obj` is optionally the object that queues the probability.
-function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_denominator) end
+function SMODS.pseudorandom_probability(trigger_obj, base_numerator, base_denominator, seed, seed_key) end
 
 ---@param handname string
 ---@return boolean
