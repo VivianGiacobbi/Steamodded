@@ -2658,6 +2658,8 @@ SMODS.valid_scaling_keys = {
 	['invis_rounds'] = true
 }
 
+--- table for keys considered valid for scaling
+SMODS.denied_extra_keys = {}
 SMODS.overwrite_scale_message = {}
 SMODS.anticipate_scale_message = {}
 SMODS.mod_scale_message = {}
@@ -2706,14 +2708,15 @@ function SMODS.create_ability_proxies(card, tree, card_table, key, first_pass)
         __newindex = function (t,k,v)
             if tree[key..'_orig_table'][k] == v then return end
 
-            if G.STAGE ~= G.STAGES.RUN or not card.area or card.area.config.collection or (t == card.ability and not SMODS.valid_scaling_keys[k]) then
+            if G.STAGE ~= G.STAGES.RUN or not card.area or card.area.config.collection 
+            or (t == card.ability and not SMODS.valid_scaling_keys[k] or SMODS.denied_extra_keys[k]) then
                 tree[key..'_orig_table'][k] = v
                 return
             end
 
             local ret = {}
             for _, joker in ipairs(G.jokers.cards) do
-                local eval = eval_card(joker, {card_scale = card, key = k, old_val = tree[key..'_orig_table'][k], new_val = v})
+                local eval = eval_card(joker, {card_scale = card, table = t, key = k, old_val = tree[key..'_orig_table'][k], new_val = v})
                
                 if eval.jokers then
                     local recurse = eval.jokers
