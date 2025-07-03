@@ -1129,6 +1129,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                 target.scale = res.scale
                 target.text_colour = res.text_colour
             end
+
             if desc_nodes == full_UI_table.main and not full_UI_table.name then
                 full_UI_table.name = self.set == 'Enhanced' and 'temp_value' or localize { type = 'name', set = target.set, key = res.name_key or target.key, nodes = full_UI_table.name, vars = res.name_vars or target.vars or {} }
             elseif desc_nodes ~= full_UI_table.main and not desc_nodes.name and self.set ~= 'Enhanced' then
@@ -1141,7 +1142,9 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
             if res.main_start then
                 desc_nodes[#desc_nodes + 1] = res.main_start
             end
+
             localize(target)
+            
             if res.main_end then
                 desc_nodes[#desc_nodes + 1] = res.main_end
             end

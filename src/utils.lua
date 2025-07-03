@@ -1661,7 +1661,9 @@ SMODS.calculate_retriggers = function(card, context, _ret)
             local eval, post = eval_card(_card, {retrigger_joker_check = true, other_card = card, other_context = context, other_ret = _ret})
             if next(post) then SMODS.trigger_effects({post}, _card) end
             for key, value in pairs(eval) do
-                value.retrigger_juice = card
+                if not value.no_retrigger_juice then
+                    value.retrigger_juice = card
+                end
                 SMODS.insert_repetitions(retriggers, value, _card, 'joker_retrigger')
             end
         end
