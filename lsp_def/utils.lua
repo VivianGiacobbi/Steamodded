@@ -587,7 +587,7 @@ function SMODS.merge_effects(...) end
 ---@param trigger_obj Card|table
 ---@param base_numerator number
 ---@param base_denominator number
----@---@param seed_key string
+---@param seed_key string
 ---@return number numerator
 ---@return number denominator
 --- Returns a *`numerator` in `denominator`* listed probability opportunely modified by in-game effects
