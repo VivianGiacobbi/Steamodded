@@ -587,13 +587,14 @@ function SMODS.merge_effects(...) end
 ---@param trigger_obj Card|table
 ---@param base_numerator number
 ---@param base_denominator number
+---@---@param seed_key string
 ---@return number numerator
 ---@return number denominator
 --- Returns a *`numerator` in `denominator`* listed probability opportunely modified by in-game effects
 --- starting from a *`base_numerator` in `base_denominator`* probability. 
 --- 
 --- Can be hooked for more complex probability behaviour. `trigger_obj` is optionally the object that queues the probability.
-function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator) end
+function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, seed_key) end
 
 ---@param trigger_obj Card|table
 ---@param base_numerator number
