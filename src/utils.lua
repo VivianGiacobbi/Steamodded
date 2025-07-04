@@ -283,20 +283,20 @@ end
 
 -- Change a card's suit, rank, or both.
 -- Accepts keys for both objects instead of needing to build a card key yourself.
-function SMODS.change_base(card, suit, rank)
+function SMODS.change_base(card, suit, rank, manual_sprites)
     if not card then return nil, "SMODS.change_base called with no card" end
     local _suit = SMODS.Suits[suit or card.base.suit]
     local _rank = SMODS.Ranks[rank or card.base.value]
     if not _suit or not _rank then
         return nil, ('Tried to call SMODS.change_base with invalid arguments: suit="%s", rank="%s"'):format(suit, rank)
     end
-    card:set_base(G.P_CARDS[('%s_%s'):format(_suit.card_key, _rank.card_key)])
+    card:set_base(G.P_CARDS[('%s_%s'):format(_suit.card_key, _rank.card_key)], nil, manual_sprites)
     return card
 end
 
 -- Modify a card's rank by the specified amount.
 -- Increase rank if amount is positive, decrease rank if negative.
-function SMODS.modify_rank(card, amount)
+function SMODS.modify_rank(card, amount, manual_sprites)
     local rank_key = card.base.value
     local rank_data = SMODS.Ranks[card.base.value]
     if amount > 0 then
@@ -335,7 +335,7 @@ function SMODS.modify_rank(card, amount)
         end
     end
     
-    return SMODS.change_base(card, nil, rank_key)
+    return SMODS.change_base(card, nil, rank_key, manual_sprites)
 end
 
 -- Return an array of all (non-debuffed) jokers or consumables with key `key`.
