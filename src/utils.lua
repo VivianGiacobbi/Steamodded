@@ -2552,18 +2552,18 @@ function SMODS.merge_effects(...)
     return ret
 end
 
-function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, seed_key)
+function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, seed_key, from_roll)
     if not G.jokers then return base_numerator, base_denominator end
-    local additive = SMODS.calculate_context({mod_probability = true, trigger_obj = trigger_obj, seed_key = seed_key, numerator = base_numerator, denominator = base_denominator})
+    local additive = SMODS.calculate_context({mod_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, seed_key = seed_key, numerator = base_numerator, denominator = base_denominator})
     additive.numerator = (additive.numerator or base_numerator) * ((G.GAME and G.GAME.probabilities.normal or 1) / (2 ^ #SMODS.find_card('j_oops')))
-    local fixed = SMODS.calculate_context({fix_probability = true, trigger_obj = trigger_obj, seed_key = seed_key, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator})
+    local fixed = SMODS.calculate_context({fix_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, seed_key = seed_key, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator})
     return fixed.numerator or additive.numerator or base_numerator, fixed.denominator or additive.denominator or base_denominator
 end
 
 function SMODS.pseudorandom_probability(trigger_obj, base_numerator, base_denominator, seed, seed_key)
     assert(seed, "Seed not provided to SMODS.pseudorandom_probability")
     local string_seed = (type(seed) == 'string' and seed or seed_key)
-    local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, string_seed)
+    local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, string_seed, true)
     local result = pseudorandom(seed) < numerator / denominator 
     SMODS.calculate_context({pseudorandom_call = true, succeeded = (not not result), seed_key = string_seed, trigger_obj = trigger_obj })
     return result
