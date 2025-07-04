@@ -2565,7 +2565,7 @@ function SMODS.pseudorandom_probability(trigger_obj, base_numerator, base_denomi
     local string_seed = (type(seed) == 'string' and seed or seed_key)
     local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, string_seed)
     local result = pseudorandom(seed) < numerator / denominator 
-    SMODS.calculate_context({pseudorandom_call = true, succeeded = (not not result), seed = string_seed, trigger_obj = trigger_obj })
+    SMODS.calculate_context({pseudorandom_call = true, succeeded = (not not result), seed_key = string_seed, trigger_obj = trigger_obj })
     return result
 end
 
