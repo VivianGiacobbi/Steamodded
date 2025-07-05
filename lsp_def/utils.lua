@@ -591,8 +591,8 @@ function SMODS.merge_effects(...) end
 ---@param base_denominator number
 ---@param key string|nil optional seed key for associating results in loc_vars with in-game probability rolls
 ---@param from_roll boolean|nil
----@return boolean
-
+---@return number numerator
+---@return number denominator
 --- Returns a *`numerator` in `denominator`* listed probability opportunely modified by in-game effects
 --- starting from a *`base_numerator` in `base_denominator`* probability. 
 --- 
@@ -604,8 +604,7 @@ function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominato
 ---@param base_numerator number
 ---@param base_denominator number
 ---@param key string
----@return number numerator
----@return number denominator
+---@return boolean
 --- Sets the seed to `seed` and runs a *`base_numerator` in `base_denominator`* listed probability check. 
 --- Returns `true` if the probability succeeds. You do not need to multiply `base_numerator` by `G.GAME.probabilities.normal`. 
 --- 
