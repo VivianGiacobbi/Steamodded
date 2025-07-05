@@ -1698,7 +1698,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
     })
     SMODS.Blind:take_ownership('wheel', {
         loc_vars = function(self)
-            return { vars = { SMODS.get_probability_vars(self, 1, 7, 'wheel') } }
+            return { vars = { SMODS.get_probability_vars(self, 'wheel', 1, 7) } }
         end,
         collection_loc_vars = function(self)
             return { vars = { '1', '7' }}
@@ -3114,7 +3114,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
 
     SMODS.Enhancement:take_ownership('glass', {
         calculate = function(self, card, context)
-            if context.destroy_card and context.cardarea == G.play and context.destroy_card == card and SMODS.pseudorandom_probability(card, 1, card.ability.extra, 'glass') then
+            if context.destroy_card and context.cardarea == G.play and context.destroy_card == card and SMODS.pseudorandom_probability(card, 'glass', 1, card.ability.extra) then
                 card.glass_trigger = true
                 return { remove = true }
             end
@@ -3124,8 +3124,8 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
     SMODS.Enhancement:take_ownership('lucky', {
         loc_vars = function (self, info_queue, card)
             local cfg = (card and card.ability) or self.config
-            local numerator_mult, denominator_mult = SMODS.get_probability_vars(card, 1, 5, 'lucky_mult')
-            local numerator_dollars, denominator_dollars = SMODS.get_probability_vars(card, 1, 15, 'lucky_money')
+            local numerator_mult, denominator_mult = SMODS.get_probability_vars(card, 'lucky_mult', 1, 5)
+            local numerator_dollars, denominator_dollars = SMODS.get_probability_vars(card, 'lucky_money', 1, 15)
             return {vars = {numerator_mult, cfg.mult, denominator_mult, cfg.p_dollars, denominator_dollars, numerator_dollars}}
         end,
     })
