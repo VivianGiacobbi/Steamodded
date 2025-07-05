@@ -2554,9 +2554,9 @@ end
 
 function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, key, from_roll)
     if not G.jokers then return base_numerator, base_denominator end
-    local additive = SMODS.calculate_context({mod_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, seed_key = key, numerator = base_numerator, denominator = base_denominator})
+    local additive = SMODS.calculate_context({mod_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, key = key, numerator = base_numerator, denominator = base_denominator})
     additive.numerator = (additive.numerator or base_numerator) * ((G.GAME and G.GAME.probabilities.normal or 1) / (2 ^ #SMODS.find_card('j_oops')))
-    local fixed = SMODS.calculate_context({fix_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, seed_key = key, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator})
+    local fixed = SMODS.calculate_context({fix_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, key = key, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator})
     return fixed.numerator or additive.numerator or base_numerator, fixed.denominator or additive.denominator or base_denominator
 end
 
@@ -2566,12 +2566,6 @@ function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_
     local result = pseudorandom(seed) < numerator / denominator
     SMODS.calculate_context({pseudorandom_call = true, succeeded = (not not result), key = string_key, trigger_obj = trigger_obj })
     return result
-end
-
-local ref_pseudoseed = pseudoseed
-function pseudoseed(key, predict_seed)
-  local ret = ref_pseudoseed(key, predict_seed)
-  return ret, key
 end
 
 function SMODS.is_poker_hand_visible(handname)

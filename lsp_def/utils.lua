@@ -607,7 +607,7 @@ function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_
 --- Returns `true` if the probability succeeds. You do not need to multiply `base_numerator` by `G.GAME.probabilities.normal`. 
 --- 
 --- Can be hooked to run code when a listed probability succeeds and/or fails. `trigger_obj` is optionally the object that queues the probability.
-function SMODS.pseudorandom_probability(trigger_obj, base_numerator, base_denominator, key, from_roll) end
+function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, key, from_roll) end
 
 ---@param handname string
 ---@return boolean
