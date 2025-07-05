@@ -9,7 +9,7 @@ priority = -5
 target = 'card.lua'
 pattern = '''pseudorandom\((.*?)\) ?< ?G\.GAME\.probabilities\.normal ?\/ ?(.*?)( |\)|$)'''
 position = 'at'
-payload = "SMODS.pseudorandom_probability(self, 1, $2, $1)$3"
+payload = "SMODS.pseudorandom_probability(self, $1, 1, $2)$3"
 
 # The Wheel
 # Don't have to modify loc_debuff_text since that's already done via override
@@ -20,7 +20,7 @@ target = "blind.lua"
 pattern = '''if self.name == 'The Wheel' and pseudorandom(pseudoseed('wheel')) < G.GAME.probabilities.normal/7 then'''
 position = "at"
 match_indent = true
-payload = '''if self.name == 'The Wheel' and SMODS.pseudorandom_probability(self, 1, 7, pseudoseed('wheel')) then'''
+payload = '''if self.name == 'The Wheel' and SMODS.pseudorandom_probability(self, pseudoseed('wheel'), 1, 7, 'wheel') then'''
 
 # Space Joker prob vars
 [[patches]]

@@ -585,28 +585,29 @@ function SMODS.draw_cards(hand_space) end
 ---Flattens given calculation returns into one, utilising `extra` tables. 
 function SMODS.merge_effects(...) end
 ---@param trigger_obj Card|table
+---@param seed string|number
 ---@param base_numerator number
 ---@param base_denominator number
----@param seed_key string
+---@param key string
 ---@return number numerator
 ---@return number denominator
 --- Returns a *`numerator` in `denominator`* listed probability opportunely modified by in-game effects
 --- starting from a *`base_numerator` in `base_denominator`* probability. 
 --- 
 --- Can be hooked for more complex probability behaviour. `trigger_obj` is optionally the object that queues the probability.
-function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, seed_key) end
+function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_denominator, key) end
 
 ---@param trigger_obj Card|table
 ---@param base_numerator number
 ---@param base_denominator number
----@param seed string|number
----@param seed_key string|nil optional seed key, automatically filled if pseudoseed() is called for seed
+---@param key string|nil optional seed key for associating results in loc_vars with in-game probability rolls
+---@param from_roll boolean|nil
 ---@return boolean
 --- Sets the seed to `seed` and runs a *`base_numerator` in `base_denominator`* listed probability check. 
 --- Returns `true` if the probability succeeds. You do not need to multiply `base_numerator` by `G.GAME.probabilities.normal`. 
 --- 
 --- Can be hooked to run code when a listed probability succeeds and/or fails. `trigger_obj` is optionally the object that queues the probability.
-function SMODS.pseudorandom_probability(trigger_obj, base_numerator, base_denominator, seed, seed_key) end
+function SMODS.pseudorandom_probability(trigger_obj, base_numerator, base_denominator, key, from_roll) end
 
 ---@param handname string
 ---@return boolean
