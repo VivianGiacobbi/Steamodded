@@ -1320,7 +1320,7 @@ SMODS.calculate_individual_effect = function(effect, scored_card, key, amount, f
         return true
     end
 
-    if key == 'message' then
+    if key == 'message' and not SMODS.no_resolve then
         if effect.card and effect.card ~= scored_card then juice_card(effect.card) end
         if effect.retrigger_juice then juice_card(effect.retrigger_juice) end
         card_eval_status_text(effect.message_card or effect.juice_card or scored_card or effect.card or effect.focus, 'extra', nil, percent, nil, effect)
@@ -1473,7 +1473,7 @@ SMODS.calculate_effect_table_key = function(effect_table, key, card, ret)
     local effect = effect_table[key]
     if key ~= 'smods' and type(effect) == 'table' then
         local calc = SMODS.calculate_effect(effect, effect.scored_card or card, key == 'edition')
-        for k, v in pairs(calc) do ret[k] = v end
+        for k, v in pairs(calc) do ret[k] = type(ret[k]) == 'number' and ret[k] + v or v end
     end
 end
 
@@ -1481,7 +1481,7 @@ SMODS.calculate_effect = function(effect, scored_card, from_edition, pre_jokers)
     local ret = {}
     for _, key in ipairs(SMODS.calculation_keys) do
         if effect[key] then
-            if effect.juice_card then
+            if effect.juice_card and not SMODS.no_resolve then
                 G.E_MANAGER:add_event(Event({trigger = 'immediate', func = function ()
                     effect.juice_card:juice_up(0.1)
                     if (not effect.message_card) or (effect.message_card and effect.message_card ~= scored_card) then
@@ -1811,8 +1811,9 @@ end
 
 -- Used to calculate contexts across G.jokers, scoring_hand (if present), G.play and G.GAME.selected_back
 -- Hook this function to add different areas to MOST calculations
-function SMODS.calculate_context(context, return_table)
+function SMODS.calculate_context(context, return_table, no_resolve)
     local has_area = context.cardarea and true or nil
+    if no_resolve then SMODS.no_resolve = true end
     local flags = {}
     context.main_eval = true
     flags[#flags+1] = SMODS.calculate_card_areas('jokers', context, return_table, { joker_area = true, has_area = has_area })
@@ -1820,9 +1821,12 @@ function SMODS.calculate_context(context, return_table)
     
     flags[#flags+1] = SMODS.calculate_card_areas('playing_cards', context, return_table, { has_area = has_area })
     flags[#flags+1] = SMODS.calculate_card_areas('individual', context, return_table)
+    
+    if SMODS.no_resolve then SMODS.no_resolve = nil end
+    
     if not return_table then
         local ret = {}
-        for _,f in ipairs(flags) do
+        for i,f in ipairs(flags) do
             for k,v in pairs(f) do ret[k] = v end
         end
         return ret
@@ -2401,7 +2405,6 @@ function SMODS.get_multi_boxes(multi_box)
         for i, box in ipairs(multi_box) do
             if i > 1 then multi_boxes[#multi_boxes+1] = {n=G.UIT.R, config={minh = 0.07}} end
             local _box = desc_from_rows(box)
-            print(_box)
             multi_boxes[#multi_boxes+1] = _box
         end
     end
@@ -2552,19 +2555,19 @@ function SMODS.merge_effects(...)
     return ret
 end
 
-function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, key, from_roll)
+function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier, from_roll)
     if not G.jokers then return base_numerator, base_denominator end
-    local additive = SMODS.calculate_context({mod_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, key = key, numerator = base_numerator, denominator = base_denominator})
+    local additive = SMODS.calculate_context({mod_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, identifier = identifier, numerator = base_numerator, denominator = base_denominator}, nil, not from_roll)
     additive.numerator = (additive.numerator or base_numerator) * ((G.GAME and G.GAME.probabilities.normal or 1) / (2 ^ #SMODS.find_card('j_oops')))
-    local fixed = SMODS.calculate_context({fix_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, key = key, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator})
+    local fixed = SMODS.calculate_context({fix_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, identifier = identifier, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator}, nil, not from_roll)
     return fixed.numerator or additive.numerator or base_numerator, fixed.denominator or additive.denominator or base_denominator
 end
 
-function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_denominator, key)
-    local string_key = (type(seed) == 'string' and seed or key)
-    local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, string_key, true)
+function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_denominator, identifier)
+    local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier or seed, true)
     local result = pseudorandom(seed) < numerator / denominator
-    SMODS.calculate_context({pseudorandom_call = true, succeeded = (not not result), key = string_key, trigger_obj = trigger_obj })
+    SMODS.post_prob = SMODS.post_prob or {}
+    SMODS.calculate_context({pseudorandom_result = true, result = result, identifier = identifier or seed, trigger_obj = trigger_obj }) -- timing on this is a bit jank, will fix another time
     return result
 end
 
