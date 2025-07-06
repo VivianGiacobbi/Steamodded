@@ -2586,15 +2586,16 @@ function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_
     local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier or seed, true)
     local result = pseudorandom(seed) < numerator / denominator
     SMODS.post_prob = SMODS.post_prob or {}
-    SMODS.calculate_context({pseudorandom_result = true, result = result, identifier = identifier or seed, trigger_obj = trigger_obj }) -- timing on this is a bit jank, will fix another time
+    SMODS.calculate_context({pseudorandom_result = true, result = result, numerator = numerator, denominator = denominator, identifier = identifier or seed, trigger_obj = trigger_obj }) -- timing on this is a bit jank, will fix another time
     return result
 end
 
 function SMODS.is_poker_hand_visible(handname)
-    if SMODS.PokerHands[handname].visible and type(SMODS.PokerHands[handname].visible) == "function" then
+    if SMODS.PokerHands[handname] and SMODS.PokerHands[handname].visible and type(SMODS.PokerHands[handname].visible) == "function" then
         return not not SMODS.PokerHands[handname]:visible()
     end
-    return G.GAME.hands[handname].visible
+	assert(G.GAME.hands[handname], "handname '" .. handname .. "' not found!")
+    return not not SMODS.PokerHands[handname] and G.GAME.hands[handname].visible
 end
 
 G.FUNCS.update_blind_debuff_text = function(e)
