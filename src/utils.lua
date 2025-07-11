@@ -1469,6 +1469,16 @@ SMODS.trigger_effects = function(effects, card)
         SMODS.calculate_effect_table_key(effect_table, 'individual', card, ret)
         -- todo: might want to move these keys to a customizable list/lists
     end
+
+    if SMODS.post_prob and next(SMODS.post_prob) then
+        local prob_tables = SMODS.post_prob
+        SMODS.post_prob = {}
+        for i, v in ipairs(prob_tables) do
+            v.pseudorandom_result = true
+            SMODS.calculate_context(v)
+        end
+    end
+
     return ret
 end
 
@@ -2003,7 +2013,7 @@ function SMODS.calculate_destroying_cards(context, cards_destroyed, scoring_hand
 end
 
 function SMODS.blueprint_effect(copier, copied_card, context)
-    if not copied_card or copied_card == copier or context.no_blueprint then return end
+    if not copied_card or copied_card == copier or copied_card.debuff or context.no_blueprint then return end
     if (context.blueprint or 0) > #G.jokers.cards then return end
     local old_context_blueprint = context.blueprint
     context.blueprint = (context.blueprint and (context.blueprint + 1)) or 1
@@ -2586,7 +2596,7 @@ function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_
     local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier or seed, true)
     local result = pseudorandom(seed) < numerator / denominator
     SMODS.post_prob = SMODS.post_prob or {}
-    SMODS.calculate_context({pseudorandom_result = true, result = result, numerator = numerator, denominator = denominator, identifier = identifier or seed, trigger_obj = trigger_obj }) -- timing on this is a bit jank, will fix another time
+    SMODS.post_prob[#SMODS.post_prob+1] = {pseudorandom_result = true, result = result, trigger_obj = trigger_obj, numerator = numerator, denominator = denominator, identifier = identifier or seed}
     return result
 end
 
