@@ -470,7 +470,7 @@ function SMODS.create_mod_badges(obj, badges)
             end
         end
         for i, mod in ipairs(mods) do
-            local mod_name = string.sub(mod.display_name, 1, 20)
+            local mod_name = mod.display_name
             local size = 0.9
             local font = G.LANG.font
             local max_text_width = 2 - 2*0.05 - 4*0.03*size - 2*0.03
@@ -480,13 +480,13 @@ function SMODS.create_mod_badges(obj, badges)
                 local tx = font.FONT:getWidth(c)*(0.33*size)*G.TILESCALE*font.FONTSCALE + 2.7*1*G.TILESCALE*font.FONTSCALE
                 calced_text_width = calced_text_width + tx/(G.TILESIZE*G.TILESCALE)
             end
-            local scale_fac =
-                calced_text_width > max_text_width and max_text_width/calced_text_width
-                or 1
+            local scale_fac = 1
+                -- calced_text_width > max_text_width and max_text_width/calced_text_width
+                -- or 1
             badges[#badges + 1] = {n=G.UIT.R, config={align = "cm"}, nodes={
                 {n=G.UIT.R, config={align = "cm", colour = mod.badge_colour or G.C.GREEN, r = 0.1, minw = 2, minh = 0.36, emboss = 0.05, padding = 0.03*size}, nodes={
                   {n=G.UIT.B, config={h=0.1,w=0.03}},
-                  {n=G.UIT.O, config={object = DynaText({string = mod_name or 'ERROR', colours = {mod.badge_text_colour or G.C.WHITE},float = true, shadow = true, offset_y = -0.05, silent = true, spacing = 1*scale_fac, scale = 0.33*size*scale_fac})}},
+                  {n=G.UIT.O, config={object = DynaText({string = mod_name or 'ERROR', colours = {mod.badge_text_colour or G.C.WHITE},float = true, shadow = true, offset_y = -0.05, silent = true, spacing = 1*scale_fac, scale = 0.33*size*scale_fac, marquee = calced_text_width > max_text_width and not mod.no_marquee, maxw = max_text_width})}},
                   {n=G.UIT.B, config={h=0.1,w=0.03}},
                 }}
               }}
@@ -1837,7 +1837,9 @@ function SMODS.calculate_context(context, return_table, no_resolve)
     context.main_eval = nil
     
     flags[#flags+1] = SMODS.calculate_card_areas('playing_cards', context, return_table, { has_area = has_area })
+    context.main_eval = true
     flags[#flags+1] = SMODS.calculate_card_areas('individual', context, return_table)
+    context.main_eval = nil
     
     if SMODS.no_resolve then SMODS.no_resolve = nil end
     

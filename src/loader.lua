@@ -630,6 +630,7 @@ local function initializeModUIFunctions()
     for id, modInfo in pairs(SMODS.mod_list) do
         G.FUNCS["openModUI_" .. modInfo.id] = function(e)
             G.ACTIVE_MOD_UI = modInfo
+            SMODS.LAST_SELECTED_MOD_TAB = e.config.page or "mod_desc"
             G.FUNCS.overlay_menu({
                 definition = create_UIBox_mods(e)
             })
