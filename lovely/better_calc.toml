@@ -14,6 +14,7 @@ position = 'at'
 line_prepend = '$indent'
 payload = '''$handtext
 delay(0.3)
+SMODS.calculate_context({initial_scoring_step = true, full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands})
 for _, v in ipairs(SMODS.get_card_areas('playing_cards')) do
     SMODS.calculate_main_scoring({cardarea = v, full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands}, v == G.play and scoring_hand or nil)
     delay(0.3)
@@ -279,7 +280,7 @@ if card.area and area_set[card.area] then
     if type(jokers) ~= 'table' then jokers = nil end
     if jokers or triggered then
         ret.jokers = jokers
-        if not (context.retrigger_joker_check or context.retrigger_joker) and not (jokers and jokers.no_retrigger) then
+        if not (context.retrigger_joker_check or context.retrigger_joker) and not (jokers and jokers.no_retrigger) and not context.mod_probability and not context.fix_probability then
             local retriggers = SMODS.calculate_retriggers(card, context, ret)
             if next(retriggers) then
                 ret.retriggers = retriggers
@@ -448,9 +449,11 @@ if next(joker_eval) then
     if joker_eval.retriggers then
         for rt = 1, #joker_eval.retriggers do
             local rt_eval, rt_post = eval_card(_card, {cardarea = G.jokers, full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands, joker_main = true, retrigger_joker = true})
-            table.insert(effects, {retriggers = joker_eval.retriggers[rt]})
-            table.insert(effects, rt_eval)
-            for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+            if next(rt_eval) then
+                table.insert(effects, {retriggers = joker_eval.retriggers[rt]})
+                table.insert(effects, rt_eval)
+                for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+            end
         end
     end
 end'''
@@ -492,9 +495,11 @@ for _, _area in ipairs(SMODS.get_card_areas('jokers')) do
             if joker_eval.retriggers then
                 for rt = 1, #joker_eval.retriggers do
                     local rt_eval, rt_post = eval_card(_joker, {full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands, [other_key] = _card, retrigger_joker = true})
-                    table.insert(effects, {retriggers = joker_eval.retriggers[rt]})
-                    table.insert(effects, rt_eval)
-                    for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+                    if next(rt_eval) then
+                        table.insert(effects, {retriggers = joker_eval.retriggers[rt]})
+                        table.insert(effects, rt_eval)
+                        for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+                    end
                 end
             end
         end
@@ -514,9 +519,11 @@ for _, _area in ipairs(SMODS.get_card_areas('individual')) do
         if _eval.retriggers then
             for rt = 1, #_eval.retriggers do
                 local rt_eval, rt_post = SMODS.eval_individual(_area, {full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands, [other_key] = _card, retrigger_joker = true})
-                table.insert(effects, {_eval.retriggers[rt]})
-                table.insert(effects, rt_eval)
-                for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+                if next(rt_eval) then
+                    table.insert(effects, {_eval.retriggers[rt]})
+                    table.insert(effects, rt_eval)
+                    for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+                end
             end
         end
     end
@@ -589,6 +596,45 @@ payload = '''
 SMODS.calculate_context({full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands, final_scoring_step = true})
 
 -- TARGET: effects before deck final_scoring_step
+'''
+
+# context.destroying_card
+[[patches]]
+[patches.pattern]
+target = "functions/state_events.lua"
+pattern = '''
+for j = 1, #G.jokers.cards do
+    destroyed = G.jokers.cards[j]:calculate_joker({destroying_card = scoring_hand[i], full_hand = G.play.cards})
+    if destroyed then break end
+end
+
+if scoring_hand[i].ability.name == 'Glass Card' and not scoring_hand[i].debuff and pseudorandom('glass') < G.GAME.probabilities.normal/scoring_hand[i].ability.extra then
+    destroyed = true
+end'''
+match_indent = true
+position = "at"
+payload = '''
+-- context.destroying_card calculations
+for j = 1, #G.jokers.cards do
+    local eval, post = eval_card(G.jokers.cards[j], {destroying_card = scoring_hand[i], full_hand = G.play.cards})
+    SMODS.trigger_effects({eval, post}, scoring_hand[i])
+    if eval.jokers then destroyed = true end
+
+end
+
+if SMODS.has_enhancement(scoring_hand[i], 'm_glass') and scoring_hand[i]:can_calculate() and SMODS.pseudorandom_probability(scoring_hand[i], 'glass', 1, scoring_hand[i].ability.name == 'Glass Card' and scoring_hand[i].ability.extra or G.P_CENTERS.m_glass.config.extra) then
+    destroyed = true
+end
+
+local eval, post = eval_card(scoring_hand[i], {destroying_card = scoring_hand[i], full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands, cardarea = G.play})
+local self_destroy = false
+for key, effect in pairs(eval) do
+    self_destroy = SMODS.calculate_effect(effect, scoring_hand[i])
+end
+SMODS.trigger_effects({post}, scoring_hand[i])
+if self_destroy then destroyed = true end
+
+-- TARGET: card destroyed when played
 '''
 
 # context.remove_playing_cards
@@ -773,7 +819,7 @@ match_indent = true
 payload = '''
 -- context.end_of_round calculations
 SMODS.saved = false
-SMODS.calculate_context({end_of_round = true, game_over = game_over })
+SMODS.calculate_context({end_of_round = true, game_over = game_over, beat_boss = G.GAME.blind.boss })
 if SMODS.saved then game_over = false end
 -- TARGET: main end_of_round evaluation
 '''
@@ -786,10 +832,21 @@ position = 'at'
 pattern = '''(?<indent>[\t ]*)for i=1, #G\.hand\.cards do\n\s+--Check for hand doubling\n(.*\n)*?\s+delay\(0\.3\)'''
 line_prepend = '$indent'
 payload = '''for _,v in ipairs(SMODS.get_card_areas('playing_cards', 'end_of_round')) do
-    SMODS.calculate_end_of_round_effects({ cardarea = v, end_of_round = true })
+    SMODS.calculate_end_of_round_effects({ cardarea = v, end_of_round = true, beat_boss = G.GAME.blind.boss })
 end
 '''
 
+# store associated blind tag as a global object
+[[patches]]
+[patches.pattern]
+target = "functions/button_callbacks.lua"
+pattern = "G.GAME.round_resets.blind = e.config.ref_table"
+position = "before"
+payload = '''
+local _tag = e.UIBox:get_UIE_by_ID('tag_container')
+G.GAME.round_resets.blind_tag = _tag and _tag.config and _tag.config.ref_table or nil
+'''
+match_indent = true
 
 # context.setting_blind
 [[patches]]
@@ -841,9 +898,11 @@ for _,v in ipairs(post) do effects[#effects+1] = v end
 if eval.retriggers then
     for rt = 1, #eval.retriggers do
         local rt_eval, rt_post = eval_card(self, { selling_self = true, retrigger_joker = true})
-        table.insert(effects, {eval.retriggers[rt]})
-        table.insert(effects, rt_eval)
-        for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+        if next(rt_eval) then
+            table.insert(effects, {eval.retriggers[rt]})
+            table.insert(effects, rt_eval)
+            for _, v in ipairs(rt_post) do effects[#effects+1] = v end
+        end
     end
 end
 SMODS.trigger_effects(effects, self)
@@ -1618,11 +1677,12 @@ pattern = 'if context.cardarea == G.jokers then'
 payload = 'do'
 
 [[patches]]
-[patches.regex]
+[patches.pattern]
 target = 'game.lua'
 position = 'at'
-pattern = 'G.GAME.blind:get_loc_debuff_text\(\)'
-payload = 'SMODS.debuff_text or G.GAME.blind:get_loc_debuff_text()'
+pattern = '{n=G.UIT.O, config={object = DynaText({scale = 0.6, string = G.GAME.blind:get_loc_debuff_text(), maxw = 9, colours = {G.C.WHITE},float = true, shadow = true, silent = true, pop_in = 0, pop_in_rate = 6})}},'
+payload = '{n=G.UIT.O, config={func = "update_blind_debuff_text", object = DynaText({scale = 0.6, string = SMODS.debuff_text or G.GAME.blind:get_loc_debuff_text(), maxw = 9, colours = {G.C.WHITE},float = true, shadow = true, silent = true, pop_in = 0, pop_in_rate = 6})}},'
+match_indent = true
 
 # Custom saved message
 [[patches]]
@@ -1678,3 +1738,108 @@ pattern = '''
 }))
 delay(0.3)'''
 payload = '''    SMODS.displaying_scoring = nil'''
+
+# Joker-type removed context added
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+match_indent = true
+position = 'after'
+pattern = '''
+function Card:start_dissolve(dissolve_colours, silent, dissolve_time_fac, no_juice)
+'''
+payload = '''
+    if self.getting_sliced and not (self.ability.set == 'Default' or self.ability.set == 'Enhanced') then
+        local flags = SMODS.calculate_context({joker_type_destroyed = true, card = self})
+        if flags.no_destroy then self.getting_sliced = nil; return end
+    end
+'''
+
+## Change eternal checks
+# Ceremonial Dagger
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+match_indent = true
+position = 'at'
+pattern = '''
+if my_pos and G.jokers.cards[my_pos+1] and not self.getting_sliced and not G.jokers.cards[my_pos+1].ability.eternal and not G.jokers.cards[my_pos+1].getting_sliced then 
+'''
+payload = '''
+if my_pos and G.jokers.cards[my_pos+1] and not self.getting_sliced and not SMODS.is_eternal(G.jokers.cards[my_pos+1], self) and not G.jokers.cards[my_pos+1].getting_sliced then
+'''
+# Madness
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+match_indent = true
+position = 'at'
+pattern = '''
+if G.jokers.cards[i] ~= self and not G.jokers.cards[i].ability.eternal and not G.jokers.cards[i].getting_sliced then destructable_jokers[#destructable_jokers+1] = G.jokers.cards[i] end
+'''
+payload = '''
+if G.jokers.cards[i] ~= self and not SMODS.is_eternal(G.jokers.cards[i], self) and not G.jokers.cards[i].getting_sliced then destructable_jokers[#destructable_jokers+1] = G.jokers.cards[i] end
+'''
+# Ankh
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+match_indent = true
+position = 'at'
+pattern = '''
+if not v.ability.eternal then deletable_jokers[#deletable_jokers + 1] = v end
+'''
+payload = '''
+if not SMODS.is_eternal(v, self) then deletable_jokers[#deletable_jokers + 1] = v end
+'''
+# Hex
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+match_indent = true
+position = 'at'
+pattern = '''
+if v ~= eligible_card and (not v.ability.eternal) then v:start_dissolve(nil, _first_dissolve);_first_dissolve = true end
+'''
+payload = '''
+if v ~= eligible_card and (not SMODS.is_eternal(v, self)) then v:start_dissolve(nil, _first_dissolve);_first_dissolve = true end
+'''
+# Card:can_sell()
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+match_indent = true
+position = 'at'
+pattern = '''
+not self.ability.eternal then
+'''
+payload = '''
+not SMODS.is_eternal(self, {from_sell = true}) then
+'''
+
+# Adds tag_added context
+[[patches]]
+[patches.pattern]
+target = 'functions/UI_definitions.lua'
+match_indent = true
+position = 'after'
+pattern = '''
+generateTagUi()
+'''
+payload = '''
+if not _tag.from_load then SMODS.calculate_context({tag_added = _tag}) end
+_tag.from_load = nil
+'''
+
+# Prevent tag added context on reloading
+[[patches]]
+[patches.pattern]
+target = 'tag.lua'
+match_indent = true
+position = 'after'
+pattern = '''
+G.GAME.tag_tally = math.max(self.tally, G.GAME.tag_tally) + 1
+'''
+payload = '''
+self.from_load = true
+'''
