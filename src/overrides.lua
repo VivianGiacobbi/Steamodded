@@ -1474,19 +1474,25 @@ function G.FUNCS.get_poker_hand_info(_cards)
 	end
 	disp_text = text
 	local _hand = SMODS.PokerHands[text]
-	if text == 'Straight Flush' then
-		local royal = true
-		for j = 1, #scoring_hand do
-			local rank = SMODS.Ranks[scoring_hand[j].base.value]
-			royal = royal and (rank.key == 'Ace' or rank.key == '10' or rank.face)
-		end
-		if royal then
-			disp_text = 'Royal Flush'
-		end
-	elseif _hand and _hand.modify_display_text and type(_hand.modify_display_text) == 'function' then
-		disp_text = _hand:modify_display_text(_cards, scoring_hand) or disp_text
-	end
+    if text == 'Straight Flush' then
+        local royal = true
+        for j = 1, #scoring_hand do
+            local rank = SMODS.Ranks[scoring_hand[j].base.value]
+            royal = royal and (rank.key == 'Ace' or rank.key == '10' or rank.face)
+        end
+        if royal then
+            disp_text = 'Royal Flush'
+        end
+    elseif _hand and _hand.modify_display_text and type(_hand.modify_display_text) == 'function' then
+        disp_text = _hand:modify_display_text(_cards, scoring_hand) or disp_text
+    end
+    local flags = SMODS.calculate_context({ evaluate_poker_hand = true, full_hand = _cards, scoring_hand = scoring_hand, scoring_name =
+    text, poker_hands = poker_hands, display_name = disp_text })
+    text = flags.replace_scoring_name or text
+    disp_text = flags.replace_display_name or flags.replace_scoring_name or disp_text
+	poker_hands = flags.replace_poker_hands or poker_hands
 	loc_disp_text = localize(disp_text, 'poker_hands')
+	loc_disp_text = loc_disp_text == 'ERROR' and disp_text or loc_disp_text
 	return text, loc_disp_text, poker_hands, scoring_hand, disp_text
 end
 
@@ -2303,4 +2309,39 @@ function Blind:modify_hand(cards, poker_hands, text, mult, hand_chips, scoring_h
 	_G.mult, _G.hand_chips, modded = modify_hand(self, cards, poker_hands, text, mult, hand_chips, scoring_hand)
 	local flags = SMODS.calculate_context({ modify_hand = true, poker_hands = poker_hands, scoring_name = text, scoring_hand = scoring_hand, full_hand = cards })
 	return _G.mult, _G.hand_chips, modded or flags.calculated
+end
+
+local card_set_base = Card.set_base
+function Card:set_base(card, initial)
+    if self.playing_card and self.base then
+        local new_rank = card and card.value and SMODS.Ranks[card.value] and SMODS.Ranks[card.value].id
+        local contexts = {}
+        if new_rank then
+            if self.base.id and self.base.id ~= new_rank then
+                SMODS.merge_defaults(contexts, {change_rank = true, other_card = self, new_rank = new_rank, old_rank = self.base.id, rank_increase = ((self.base.id < new_rank) and true) or false})
+            end
+        end
+        if card and card.suit and self.base.suit ~= card.suit then 
+            SMODS.merge_defaults(contexts, {change_suit = true, other_card = self, new_suit = card.suit, old_suit = self.base.suit})
+        end
+        if next(contexts) then
+            SMODS.calculate_context(contexts)
+        end
+    end
+
+    card_set_base(self, card, initial)
+end
+
+local use_consumeable = Card.use_consumeable
+function Card:use_consumeable(area, copier)
+	local ret = use_consumeable(self, area, copier)
+	if SMODS.post_prob and next(SMODS.post_prob) then
+        local prob_tables = SMODS.post_prob
+        SMODS.post_prob = {}
+        for i, v in ipairs(prob_tables) do
+            v.pseudorandom_result = true
+            SMODS.calculate_context(v)
+        end
+    end
+	return ret
 end
