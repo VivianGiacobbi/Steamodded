@@ -2626,7 +2626,7 @@ G.FUNCS.update_blind_debuff_text = function(e)
 end
 
 function Card:should_hide_front()
-  return self.ability.effect == 'Stone Card' or self.config.center.overrides_base_rank
+  return self.ability.effect == 'Stone Card' or self.config.center.replace_base_card
 end
 
 function SMODS.is_eternal(card, trigger)
