@@ -2590,16 +2590,17 @@ function SMODS.merge_effects(...)
     return ret
 end
 
-function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier, from_roll)
+function SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier, from_roll, no_mod)
     if not G.jokers then return base_numerator, base_denominator end
+    if no_mod then return base_numerator, base_denominator end
     local additive = SMODS.calculate_context({mod_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, identifier = identifier, numerator = base_numerator, denominator = base_denominator}, nil, not from_roll)
     additive.numerator = (additive.numerator or base_numerator) * ((G.GAME and G.GAME.probabilities.normal or 1) / (2 ^ #SMODS.find_card('j_oops')))
     local fixed = SMODS.calculate_context({fix_probability = true, from_roll = from_roll, trigger_obj = trigger_obj, identifier = identifier, numerator = additive.numerator or base_numerator, denominator = additive.denominator or base_denominator}, nil, not from_roll)
     return fixed.numerator or additive.numerator or base_numerator, fixed.denominator or additive.denominator or base_denominator
 end
 
-function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_denominator, identifier)
-    local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier or seed, true)
+function SMODS.pseudorandom_probability(trigger_obj, seed, base_numerator, base_denominator, identifier, no_mod)
+    local numerator, denominator = SMODS.get_probability_vars(trigger_obj, base_numerator, base_denominator, identifier or seed, true, no_mod)
     local result = pseudorandom(seed) < numerator / denominator
     SMODS.post_prob = SMODS.post_prob or {}
     SMODS.post_prob[#SMODS.post_prob+1] = {pseudorandom_result = true, result = result, trigger_obj = trigger_obj, numerator = numerator, denominator = denominator, identifier = identifier or seed}
@@ -2718,42 +2719,54 @@ function Card:calculate_joker(context, ...)
 end
 
 function SMODS.quip(quip_type)
-    if not (quip_type == 'win' or quip_type == 'loss') then return nil end
+    if not quip_type then return nil end
     local pool = {}
+    local total_weight = 0
     for k, v in pairs(SMODS.JimboQuips) do
         local add = true
-        local in_pool, pool_opts
+        local in_pool, pool_opts, deck_pool_opts, mod_pool_opts
         if v.filter and type(v.filter) == 'function' then
             in_pool, pool_opts = v:filter(quip_type)
         end
         local deck = G.P_CENTERS[G.GAME.selected_back.effect.center.key] or SMODS.Centers[G.GAME.selected_back.effect.center.key]
         if deck and deck.quip_filter and type(deck.quip_filter) == 'function' then
-            add = deck.quip_filter(v, quip_type)
+            add, deck_pool_opts = deck.quip_filter(v, quip_type)
+        end
+        for _, mod in ipairs(SMODS.mod_list) do
+            if mod.can_load and mod.quip_filter and type(mod.quip_filter) == "function" then
+                local mod_add
+                mod_add, mod_pool_opts = mod.quip_filter(v, quip_type)
+                add = add and mod_add
+            end
         end
         if v.filter and type(v.filter) == 'function' then
-            add = in_pool and (add or (pool_opts and pool_opts.override_base_checks))
+            add = in_pool and (add or (mod_pool_opts and mod_pool_opts.override_base_checks) or (deck_pool_opts and deck_pool_opts.override_base_checks) or (pool_opts and pool_opts.override_base_checks))
         end
-        if v.type ~= quip_type then
+        if v.type and v.type ~= quip_type then
             add = false
         end
         if add then
-            local rarity = (pool_opts and pool_opts.weight and math.max(1, math.floor(pool_opts.weight))) or 1
-            for i = 1, rarity do
-                pool[#pool+1] = v
+            local weight = (mod_pool_opts and mod_pool_opts.weight and math.max(1, math.floor(mod_pool_opts.weight))) or (deck_pool_opts and deck_pool_opts.weight and math.max(1, math.floor(deck_pool_opts.weight))) or (pool_opts and pool_opts.weight and math.max(1, math.floor(pool_opts.weight))) or 1
+            pool[#pool+1] = {quip = v, weight = weight}
+            total_weight = total_weight + weight
+        end
+    end
+    local quip_poll = pseudorandom(quip_type)
+    local it = 0
+    for _, v in ipairs(pool) do
+        it = it + v.weight
+        if it/total_weight >= quip_poll then
+            local args = {}
+            if v.quip.extra then
+                if type(v.quip.extra) == 'function' then
+                    args = v.quip.extra()
+                else
+                    args = v.quip.extra
+                end
             end
+            return v.quip.key, args
         end
     end
-    local quip = pseudorandom_element(pool, pseudoseed(quip_type))
-    local key = (quip and quip.key) or (quip_type == 'win' and 'wq_1' or 'lq_1')
-    local args = {}
-    if quip and quip.extra then
-        if type(quip.extra) == 'function' then
-            args = quip.extra()
-        else
-            args = quip.extra
-        end
-    end
-    return key, args
 end
 
 
@@ -2779,4 +2792,48 @@ function G.UIDEF.challenge_description_tab(args)
 	end
 
 	return ref_challenge_desc(args)
+end
+function SMODS.localize_perma_bonuses(specific_vars, desc_nodes)
+    if specific_vars and specific_vars.bonus_x_chips then
+        localize{type = 'other', key = 'card_x_chips', nodes = desc_nodes, vars = {specific_vars.bonus_x_chips}}
+    end
+    if specific_vars and specific_vars.bonus_mult then
+        localize{type = 'other', key = 'card_extra_mult', nodes = desc_nodes, vars = {SMODS.signed(specific_vars.bonus_mult)}}
+    end
+    if specific_vars and specific_vars.bonus_x_mult then
+        localize{type = 'other', key = 'card_x_mult', nodes = desc_nodes, vars = {specific_vars.bonus_x_mult}}
+    end
+    if specific_vars and specific_vars.bonus_h_chips then
+        localize{type = 'other', key = 'card_extra_h_chips', nodes = desc_nodes, vars = {SMODS.signed(specific_vars.bonus_h_chips)}}
+    end
+    if specific_vars and specific_vars.bonus_x_chips then
+        localize{type = 'other', key = 'card_h_x_chips', nodes = desc_nodes, vars = {specific_vars.bonus_h_x_chips}}
+    end
+    if specific_vars and specific_vars.bonus_h_mult then
+        localize{type = 'other', key = 'card_extra_h_mult', nodes = desc_nodes, vars = {SMODS.signed(specific_vars.bonus_h_mult)}}
+    end
+    if specific_vars and specific_vars.bonus_h_x_mult then
+        localize{type = 'other', key = 'card_h_x_mult', nodes = desc_nodes, vars = {specific_vars.bonus_h_x_mult}}
+    end
+    if specific_vars and specific_vars.bonus_p_dollars then
+        localize{type = 'other', key = 'card_extra_p_dollars', nodes = desc_nodes, vars = {SMODS.signed_dollars(specific_vars.bonus_p_dollars)}}
+    end
+    if specific_vars and specific_vars.bonus_h_dollars then
+        localize{type = 'other', key = 'card_extra_h_dollars', nodes = desc_nodes, vars = {SMODS.signed_dollars(specific_vars.bonus_h_dollars)}}
+    end
+    if specific_vars and specific_vars.bonus_repetitions then
+        localize{type = 'other', key = 'card_extra_repetitions', nodes = desc_nodes, vars = {specific_vars.bonus_repetitions, localize(specific_vars.bonus_repetitions > 1 and 'b_retrigger_plural' or 'b_retrigger_single')}}
+    end
+end
+
+local ease_dollar_ref = ease_dollars
+function ease_dollars(mod, instant)
+    ease_dollar_ref(mod, instant)
+    SMODS.calculate_context({
+        money_altered = true,
+        amount = mod,
+        from_shop = (G.STATE == G.STATES.SHOP or G.STATE == G.STATES.SMODS_BOOSTER_OPENED or G.STATE == G.STATES.SMODS_REDEEM_VOUCHER) or nil,
+        from_consumeable = (G.STATE == G.STATES.PLAY_TAROT) or nil,
+        from_scoring = (G.STATE == G.STATES.HAND_PLAYED) or nil,
+    })
 end
