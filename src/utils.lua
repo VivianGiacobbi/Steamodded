@@ -2578,7 +2578,7 @@ function SMODS.showman(card_key)
     return false
 end
 
-function SMODS.four_fingers()
+function SMODS.four_fingers(hand_type)
     if next(SMODS.find_card('j_four_fingers')) then
         return 4
     end
