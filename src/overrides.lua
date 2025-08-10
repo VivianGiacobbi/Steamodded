@@ -2312,7 +2312,7 @@ function Blind:modify_hand(cards, poker_hands, text, mult, hand_chips, scoring_h
 end
 
 local card_set_base = Card.set_base
-function Card:set_base(card, initial)
+function Card:set_base(card, initial, manual_sprites)
     if self.playing_card and self.base then
         local new_rank = card and card.value and SMODS.Ranks[card.value] and SMODS.Ranks[card.value].id
         local contexts = {}
@@ -2329,7 +2329,7 @@ function Card:set_base(card, initial)
         end
     end
 
-    card_set_base(self, card, initial)
+    card_set_base(self, card, initial, manual_sprites)
 end
 
 local use_consumeable = Card.use_consumeable
