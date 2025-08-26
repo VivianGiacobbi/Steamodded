@@ -204,8 +204,6 @@ for k, v in pairs(G.P_SEALS[_seal].config or {}) do
 end
 
 self.ability.delay_seal = not silent
-print(tostring(self.ability.delay_seal))
-print(tostring(silent))
 '''
 
 # card_limit support

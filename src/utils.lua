@@ -2206,7 +2206,7 @@ local function insert(t, res)
         if type(v) == 'table' and type(t[k]) == 'table' then
             insert(t[k], v)
         else
-            t[k] = v
+            t[k] = true
         end
     end
 end
@@ -3007,8 +3007,14 @@ function CardArea:count_extra_slots_used(cards)
     return slots
 end
 
+function SMODS.should_handle_limit(area)
+    if (area.config.type == 'joker' or area.config.type == 'hand') and not area.config.fixed_limit then
+        return true
+    end
+end
+
 function CardArea:handle_card_limit(card_limit, card_slots)
-    if (self.config.type == 'joker' or self.config.type == 'hand') and not self.config.fixed_limit then
+    if SMODS.should_handle_limit(self) then
         card_limit = card_limit or 0
         card_slots = card_slots or 0
         if card_limit ~= 0 then
