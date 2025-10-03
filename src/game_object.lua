@@ -316,6 +316,35 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         process_loc_text = function() end,
     }
 
+    -------------------------------------------------------------------------------------------------
+    ----- API CODE GameObject.DynaTextEffect
+    -------------------------------------------------------------------------------------------------
+    
+    SMODS.DynaTextEffects = {}
+    SMODS.DynaTextEffect = SMODS.GameObject:extend {
+        obj_table = SMODS.DynaTextEffects,
+        set = 'DynaTextEffects',
+        obj_buffer = {},
+        disable_mipmap = false,
+        required_params = {
+            'key',
+            'func',
+        },
+        func = function(dynatext, index, letter)
+        end,
+        register = function(self)
+            if self.registered then
+                sendWarnMessage(('Detected duplicate register call on object %s'):format(self.key), self.set)
+                return
+            end
+            self.name = self.key
+            SMODS.DynaTextEffect.super.register(self)
+        end,
+        inject = function(self)
+        end,
+        process_loc_text = function() end,
+    }
+
 
     -------------------------------------------------------------------------------------------------
     ----- API CODE GameObject.Language
@@ -3646,6 +3675,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
     SMODS.Scoring_Parameter({
         key = 'mult',
         default_value = 0,
+        juice_on_update = true,
         colour = G.C.UI_MULT,
         calculation_keys = {'mult', 'h_mult', 'mult_mod','x_mult', 'Xmult', 'xmult', 'x_mult_mod', 'Xmult_mod'},
         calc_effect = function(self, effect, scored_card, key, amount, from_edition)

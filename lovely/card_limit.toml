@@ -292,7 +292,7 @@ position = "at"
 payload = """local hand_space = e
 local cards_to_draw = {}
 if not hand_space then
-    local limit = G.hand.config.card_limit - #G.hand.cards
+    local limit = G.hand.config.card_limit - #G.hand.cards - (SMODS.cards_to_draw or 0)
     local unfixed = not G.hand.config.fixed_limit
     local n = 0
     while n < #G.deck.cards do
@@ -307,5 +307,6 @@ if not hand_space then
         n = n + 1
     end
     hand_space = #cards_to_draw
-end"""
+end
+"""
 match_indent = true
