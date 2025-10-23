@@ -1122,7 +1122,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         end,
         delete = function(self)
             G.P_CENTERS[self.key] = nil
-            SMODS.remove_pool(G.P_CENTER_POOLS[self.set], self.key)
+            if not self.omit then SMODS.remove_pool(G.P_CENTER_POOLS[self.set], self.key) end
             for k, v in pairs(SMODS.ObjectTypes) do
                 if ((self.pools and self.pools[k]) or (v.cards and v.cards[self.key])) then
                     v:delete_card(self)
