@@ -2252,14 +2252,6 @@ G.FUNCS.change_colour_palette = function(args)
 end
 
 
-<<<<<<< Updated upstream
-local defeat = Blind.defeat
-function Blind:defeat(silent)
-	defeat(self, silent)
-	SMODS.calculate_context({ blind_defeated = true })
-end
-=======
->>>>>>> Stashed changes
 
 
 
