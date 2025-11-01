@@ -747,3 +747,21 @@ function SMODS.check_looping_context(eval_object) end
 ---@param k? number Index of challenge in G.CHALLENGES. Only relevant for challenges defined outside SMODS
 ---@return boolean
 function SMODS.challenge_is_unlocked(challenge, k) end
+
+---Returns the color a gradient will output after a time delay
+---@param grad SMODS.Gradient|table
+---@param delay number time delay in seconds
+---@return table
+function SMODS.predict_gradient(grad, delay) end
+
+---Creates a persistent additional blind effect
+---@param blind_source SMODS.Center|nil A source for the extra blind. Blinds will persist until directly removed if source is nil
+---@param blind_type table Blind prototype table
+---@param skip_set_blind boolean Flag to skip set blind behavior, primarily for loading
+---@return SMODS.Blind|table
+function SMODS.create_extra_blind(blind_source, blind_type, skip_set_blind) end
+
+---Removes all persistent additional blinds associated with a given blind_source
+---@param blind_source SMODS.Center|nil If nil, will remove all blinds unassociated with a source
+---@return boolean removed return true if any blind was removed
+function SMODS.remove_extra_blinds(blind_source) end
