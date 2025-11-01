@@ -70,7 +70,7 @@ times = 1
 target = "game.lua"
 pattern = '''if _ch.restrictions.banned_other then'''
 position = "after"
-payload = '''   
+payload = '''
     if type(_ch.restrictions.banned_other) == 'function' then
         _ch.restrictions.banned_other = _ch.restrictions.banned_other()
     end'''
@@ -91,3 +91,68 @@ if _ch.apply and type(_ch.apply) == "function" then
 end
 '''
 match_indent = true
+
+
+
+
+
+#
+# Inits extra blinds added in challenges
+#
+
+[[patches]]
+[patches.pattern]
+target = "game.lua"
+pattern = '''if _ch.restrictions then'''
+position = "before"
+payload = '''if _ch.extra_blinds then
+    G.GAME.extra_blinds = {}
+    for _, v in ipairs(_ch.extra_blinds) do
+        SMODS.create_extra_blind({}, G.P_BLINDS[v], true)
+    end
+end
+if _ch.post_apply and type(_ch.post_apply) == "function" then
+    _ch:post_apply()
+end'''
+match_indent = true
+times = 1
+
+
+
+
+
+#
+# Adds variable colors in challenge descriptions
+#
+
+[[patches]]
+[patches.pattern]
+target = "functions/UI_definitions.lua"
+pattern = '''game_rules[#game_rules+1] = {n=G.UIT.R, config={align = "cl"}, nodes= localize{type = 'text', key = 'ch_c_'..v.id, vars = {v.value}}}'''
+position = "at"
+payload = '''local vars = {}
+if v.value and type(v.value) == 'table' and #v.value > 1 then
+    for _, vv in ipairs(v.value) do
+        vars[#vars+1] = (vv.type and vv.set and vv.key) and localize(vv) or vv
+    end
+elseif v.value then
+    vars = {(type(v.value) == 'table' and v.value.type and v.value.set and v.value.key) and localize(v.value) or v.value}
+end
+
+local colours = nil
+if v.colours then
+    colours = {}
+    for _, colour in ipairs(v.colours) do
+        if type(colour) == 'table' and colour.ref_table and colour.ref_key and colour.ref_value then
+            colours[#colours+1] = colour.ref_table[colour.ref_key][colour.ref_value]
+        else
+            colours[#colours+1] = colour
+        end
+    end
+    if #colours > 0 then
+        vars.colours = colours
+    end
+end
+game_rules[#game_rules+1] = {n=G.UIT.R, config={align = "cl"}, nodes = localize{type = 'text', key = 'ch_c_'..v.id, vars = vars}}'''
+match_indent = true
+times = 1

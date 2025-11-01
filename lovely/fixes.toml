@@ -785,7 +785,7 @@ target = 'card.lua'
 match_indent = true
 position = 'after'
 pattern = '''
-if v ~= chosen_joker then 
+if v ~= chosen_joker then
 '''
 payload = '''
 v.getting_sliced = true
@@ -803,3 +803,38 @@ function pseudoshuffle(list, seed)
 payload = '''
     if seed and type(seed) == "string" then seed = pseudoseed(seed) end
 '''
+
+
+
+
+
+#
+# Patches softlocks that occur when you replace blinds
+#
+
+[[patches]]
+[patches.pattern]
+target = 'functions/state_events.lua'
+pattern = """if G.GAME.round_resets.blind == G.P_BLINDS.bl_small then"""
+position = 'at'
+payload = """if G.GAME.round_resets.effective_blind == 'Small' then"""
+match_indent = true
+times = 2
+
+[[patches]]
+[patches.pattern]
+target = 'functions/state_events.lua'
+pattern = """elseif G.GAME.round_resets.blind == G.P_BLINDS.bl_big then"""
+position = 'at'
+payload = """elseif G.GAME.round_resets.effective_blind == 'Big' then"""
+match_indent = true
+times = 2
+
+[[patches]]
+[patches.pattern]
+target = 'functions/button_callbacks.lua'
+pattern = """G.GAME.round_resets.blind_states[G.GAME.blind_on_deck] = 'Current'"""
+position = 'before'
+payload = """G.GAME.round_resets.effective_blind = G.GAME.blind_on_deck"""
+match_indent = true
+times = 1

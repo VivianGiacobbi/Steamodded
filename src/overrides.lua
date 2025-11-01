@@ -7,6 +7,8 @@
 ---@param e {}
 --**e** Is the UIE that called this function
 G.FUNCS.HUD_blind_debuff = function(e)
+	if e.UIBox ~= G.HUD_blind then return end
+
 	local scale = 0.4
 	local num_lines = #G.GAME.blind.loc_debuff_lines
 	while G.GAME.blind.loc_debuff_lines[num_lines] == '' do
@@ -31,7 +33,6 @@ G.FUNCS.HUD_blind_debuff = function(e)
 		end
 	end
 	e.UIBox:recalculate()
-	assert(G.HUD_blind == e.UIBox)
 end
 
 function create_UIBox_your_collection_blinds(exit)
@@ -564,11 +565,11 @@ function SMODS.check_applied_stakes(stake, deck)
 end
 
 function G.UIDEF.stake_option(_type)
-	
+
 	local middle = {n=G.UIT.R, config={align = "cm", minh = 1.7, minw = 7.3}, nodes={
 		{n=G.UIT.O, config={id = nil, func = 'RUN_SETUP_check_stake2', object = Moveable()}},
 	}}
-	
+
 	local stake_options = {}
 	local curr_options = {}
 	local deck_usage = G.PROFILES[G.SETTINGS.profile].deck_usage[G.GAME.viewed_back.effect.center.key]
@@ -579,7 +580,7 @@ function G.UIDEF.stake_option(_type)
 			curr_options[i] = #stake_options
 		end
 	end
-	
+
 	return {n=G.UIT.ROOT, config={align = "tm", colour = G.C.CLEAR, minh = 2.03, minw = 8.3}, nodes={
 		_type == 'Continue' and middle
 		or create_option_cycle({options = stake_options, opt_callback = 'change_stake', current_option = curr_options[G.viewed_stake] or 1,
@@ -1182,7 +1183,7 @@ G.FUNCS.your_suits_page = function(args)
 	G.VIEWING_DECK = true
 	table.sort(G.playing_cards, function(a, b) return a:get_nominal('suit') > b:get_nominal('suit') end)
 	local SUITS = {}
-	local suit_map = {} 
+	local suit_map = {}
 	for i = #SMODS.Suit.obj_buffer, 1, -1 do
 		SUITS[SMODS.Suit.obj_buffer[i]] = {}
 		suit_map[#suit_map + 1] = SMODS.Suit.obj_buffer[i]
@@ -1558,7 +1559,7 @@ function create_UIBox_current_hands(simple)
 		end
 	end
 
-	
+
 	local hand_options = {}
 	for i = 1, math.ceil(#visible_hands / 10) do
 		table.insert(hand_options,
@@ -1568,7 +1569,7 @@ function create_UIBox_current_hands(simple)
 	local object = {n = G.UIT.ROOT, config = {align = "cm", colour = G.C.CLEAR}, nodes = {
 		{n = G.UIT.R, config = {align = "cm", padding = 0.04}, nodes =
 			G.current_hands},
-		-- UI consistency with vanilla 
+		-- UI consistency with vanilla
 		#visible_hands > 12 and {n = G.UIT.R, config = {align = "cm", padding = 0}, nodes = {
 			create_option_cycle({
 				options = hand_options,
@@ -1807,7 +1808,7 @@ end
 -- silent = boolean value
 function Card:set_edition(edition, immediate, silent, delay)
 	SMODS.enh_cache:write(self, nil)
-	
+
 	if self.edition then
 		self.ability.card_limit = self.ability.card_limit - (self.edition.card_limit or 0)
 		self.ability.extra_slots_used = self.ability.extra_slots_used - (self.edition.extra_slots_used or 0)
@@ -2250,90 +2251,1182 @@ G.FUNCS.change_colour_palette = function(args)
 	G:save_settings()
 end
 
--- blind calc contexts
-local disable = Blind.disable
-function Blind:disable()
-	disable(self)
-	SMODS.calculate_context({ blind_disabled = true })
-end
 
+<<<<<<< Updated upstream
 local defeat = Blind.defeat
 function Blind:defeat(silent)
 	defeat(self, silent)
 	SMODS.calculate_context({ blind_defeated = true })
 end
+=======
+>>>>>>> Stashed changes
 
-local press_play = Blind.press_play
-function Blind:press_play()
-	local ret = press_play(self)
-	SMODS.calculate_context({ press_play = true })
-	return ret
-end
 
-local debuff_card = Blind.debuff_card
+
+---------------------------
+--------------------------- Blind calculation overrides
+---------------------------
+
+local ref_blind_debuff = Blind.debuff_card
 function Blind:debuff_card(card, from_blind)
+	if not self.extra_blind then self.disabled = self.main_blind_disabled end
 	local flags = SMODS.calculate_context({ debuff_card = card, ignore_debuff = true })
-	if flags.prevent_debuff then 
+	if flags.prevent_debuff then
 		if card.debuff then card:set_debuff(false) end
 		return
 	elseif flags.debuff then
 		if not card.debuff then card:set_debuff(true) end
 		return
 	end
-	debuff_card(self, card, from_blind)
-end
+	local ret = ref_blind_debuff(self, card, from_blind)
 
-local debuff_hand = Blind.debuff_hand
-function Blind:debuff_hand(cards, hand, handname, check)
-	SMODS.hand_debuff_source = nil
-	local ret = debuff_hand(self, cards, hand, handname, check)
-	local _, _, _, scoring_hand = G.FUNCS.get_poker_hand_info(cards)
-	local final_scoring_hand = {}
-    for i=1, #cards do
-        local splashed = SMODS.always_scores(cards[i]) or next(find_joker('Splash'))
-        local unsplashed = SMODS.never_scores(cards[i])
-        if not splashed then
-            for _, card in pairs(scoring_hand) do
-                if card == cards[i] then splashed = true end
-            end
-        end
-        local effects = {}
-        SMODS.calculate_context({modify_scoring_hand = true, other_card =  cards[i], full_hand = cards, scoring_hand = scoring_hand}, effects)
-        local flags = SMODS.trigger_effects(effects, cards[i])
-		if flags.add_to_hand then splashed = true end
-		if flags.remove_from_hand then unsplashed = true end
-        if splashed and not unsplashed then table.insert(final_scoring_hand, cards[i]) end
-    end
-	local flags = SMODS.calculate_context({ debuff_hand = true, full_hand = cards, scoring_hand = final_scoring_hand, poker_hands = hand, scoring_name = handname, check = check })
-	if flags.prevent_debuff then return false end
-	if flags.debuff then
-		SMODS.debuff_text = flags.debuff_text
-		SMODS.hand_debuff_source = flags.debuff_source
-		return true
+	if not self.extra_blind then
+		self.disabled = false
+		if not card.debuffed_by_blind then
+			for _, v in ipairs(G.GAME.extra_blinds) do
+				if self.config.blind ~= v.config.blind then
+
+					v.chips = self.chips
+					v.chip_text = number_format(self.chips)
+					v.dollars = self.dollars
+					G.GAME.blind = v
+
+					ref_blind_debuff(v, card, from_blind)
+
+					self.chips = v.chips
+					self.chip_text = number_format(v.chips)
+					self.dollars = v.dollars
+					G.GAME.blind = self
+
+					if card.debuffed_by_blind then
+						break
+					end
+				end
+			end
+		end
 	end
-	SMODS.debuff_text = nil
+
 	return ret
 end
 
-local stay_flipped = Blind.stay_flipped
+local ref_blind_hand = Blind.debuff_hand
+function Blind:debuff_hand(cards, hand, handname, check)
+	if not self.extra_blind then
+		self.disabled = self.main_blind_disabled
+		SMODS.hand_debuff_source = nil
+		SMODS.debuff_text = nil
+	end
+
+	local ret = ref_blind_hand(self, cards, hand, handname, check)
+	local ex_ret = nil
+
+	if not self.extra_blind then
+		local _, _, _, scoring_hand = G.FUNCS.get_poker_hand_info(cards)
+		local final_scoring_hand = {}
+		for i=1, #cards do
+			local splashed = SMODS.always_scores(cards[i]) or next(find_joker('Splash'))
+			local unsplashed = SMODS.never_scores(cards[i])
+			if not splashed then
+				for _, card in pairs(scoring_hand) do
+					if card == cards[i] then splashed = true end
+				end
+			end
+			local effects = {}
+			SMODS.calculate_context({modify_scoring_hand = true, other_card =  cards[i], full_hand = cards, scoring_hand = scoring_hand}, effects)
+			local flags = SMODS.trigger_effects(effects, cards[i])
+			if flags.add_to_hand then splashed = true end
+			if flags.remove_from_hand then unsplashed = true end
+			if splashed and not unsplashed then table.insert(final_scoring_hand, cards[i]) end
+		end
+
+		local flags = SMODS.calculate_context({ debuff_hand = true, full_hand = cards, scoring_hand = final_scoring_hand, poker_hands = hand, scoring_name = handname, check = check })
+		if flags.prevent_debuff then return false end
+		if flags.debuff then
+			SMODS.debuff_text = flags.debuff_text
+			SMODS.hand_debuff_source = flags.debuff_source
+			return true
+		end
+
+		if not self.main_play_loop then
+			self.disabled = false
+		end
+
+		local old_text = SMODS.debuff_text
+		local old_source = SMODS.hand_debuff_source
+		for _, v in ipairs(G.GAME.extra_blinds) do
+			if self.config.blind ~= v.config.blind then
+				v.chips = self.chips
+				v.chip_text = number_format(self.chips)
+				v.dollars = self.dollars
+				G.GAME.blind = v
+
+				local v_ret = ref_blind_hand(v, cards, hand, handname, check)
+
+				if v_ret then
+					v.extra_boss_throw_hand = true
+				end
+
+				if not ex_ret and v_ret then
+					ex_ret = v_ret
+				end
+
+				self.chips = v.chips
+				self.chip_text = number_format(v.chips)
+				self.dollars = v.dollars
+				G.GAME.blind = self
+			end
+		end
+
+		-- these are reset to always prioritize a debuff from the main blind
+		if old_text then SMODS.debuff_text = old_text end
+		if old_source then SMODS.hand_debuff_source = old_source end
+	end
+
+	return (ret or ex_ret), (ex_ret and not ret)
+end
+
+
+local ref_blind_flipped = Blind.stay_flipped
 function Blind:stay_flipped(to_area, card, from_area)
-	local ret = stay_flipped(self, to_area, card, from_area)
+	if not self.extra_blind then self.disabled = self.main_blind_disabled end
+	local ret = ref_blind_flipped(self, to_area, card, from_area)
 	local flags = SMODS.calculate_context({ to_area = to_area, from_area = from_area, other_card = card, stay_flipped = true })
 	local self_eval, self_post = eval_card(card, { to_area = to_area, from_area = from_area, other_card = card, stay_flipped = true })
 	local self_flags = SMODS.trigger_effects({ self_eval, self_post })
 	for k,v in pairs(self_flags) do flags[k] = flags[k] or v end
 	if flags.prevent_stay_flipped then return false end
 	if flags.stay_flipped then return true end
+
+	if not self.extra_blind then
+		if not self.main_play_loop then
+			self.disabled = false
+		end
+
+		for _, v in ipairs(G.GAME.extra_blinds) do
+			if self.config.blind ~= v.config.blind then
+				v.chips = self.chips
+				v.chip_text = number_format(self.chips)
+				v.dollars = self.dollars
+				G.GAME.blind = v
+
+				local ex_ret = ref_blind_flipped(v, self, to_area, card, from_area)
+
+				if not ret and ex_ret and ex_ret == true then
+					ret = ex_ret
+				end
+
+				self.chips = v.chips
+				self.chip_text = number_format(v.chips)
+				self.dollars = v.dollars
+				G.GAME.blind = self
+			end
+		end
+	end
+
 	return ret
 end
 
-local modify_hand = Blind.modify_hand
+--- modify_hand() main functionality is taken care of within a lovely patch
+local ref_blind_modify = Blind.modify_hand
 function Blind:modify_hand(cards, poker_hands, text, mult, hand_chips, scoring_hand)
+	if not self.extra_blind then
+		self.disabled = self.main_blind_disabled
+
+		local modded
+		_G.mult, _G.hand_chips, modded = ref_blind_modify(self, cards, poker_hands, text, mult, hand_chips, scoring_hand)
+		local flags = SMODS.calculate_context({ modify_hand = true, poker_hands = poker_hands, scoring_name = text, scoring_hand = scoring_hand, full_hand = cards })
+
+		if not self.main_play_loop then
+			self.disabled = false
+		end
+		return _G.mult, _G.hand_chips, modded or flags.calculated
+	end
+
+	local old_main_blind = G.GAME.blind
+	self.chips = old_main_blind.chips
+	self.chip_text = number_format(old_main_blind.chips)
+	self.dollars = old_main_blind.dollars
+	G.GAME.blind = self
+
 	local modded
-	_G.mult, _G.hand_chips, modded = modify_hand(self, cards, poker_hands, text, mult, hand_chips, scoring_hand)
+	_G.mult, _G.hand_chips, modded = ref_blind_modify(self, cards, poker_hands, text, mult, hand_chips, scoring_hand)
 	local flags = SMODS.calculate_context({ modify_hand = true, poker_hands = poker_hands, scoring_name = text, scoring_hand = scoring_hand, full_hand = cards })
+
+
+	old_main_blind.chips = self.chips
+	old_main_blind.chip_text = number_format(self.chips)
+	old_main_blind.dollars = self.dollars
+	G.GAME.blind = old_main_blind
+
+	if ((self.config.blind.modify_hand and type(self.config.blind.modify_hand) == 'function')
+	or self.config.blind.name == 'The Flint') and next(self.extra_blind) then
+		local juice_obj = self.extra_blind
+		G.E_MANAGER:add_event(Event({
+			trigger = 'immediate',
+			func = function()
+				attention_text({
+					text = self.disabled and localize('k_disabled_ex') or self.loc_name,
+					scale = 1,
+					hold = 0.45,
+					backdrop_colour = self.disabled and G.C.FILTER or get_blind_main_colour(self.config.blind.key),
+					align = 'bm',
+					major = juice_obj,
+					offset = { x = 0, y = 0.05*juice_obj.T.h}
+				})
+				if juice_obj.juice_up then juice_obj:juice_up() end
+				play_sound('generic1', (0.9 + 0.2*math.random())*0.2 + 0.8, 1)
+				return true
+			end
+		}))
+	end
+
 	return _G.mult, _G.hand_chips, modded or flags.calculated
 end
+
+local function set_blind_score_visible(bool)
+	local blind_score = G.hand_text_area.blind_chips
+    local chip_total = G.hand_text_area.game_chips
+    if not bool then
+        blind_score.UIT = G.UIT.O
+        blind_score.config.object = DynaText({
+            string = '?????',
+            colours = {G.C.DARK_EDITION},
+            bump = true,
+            pop_in_rate = 99999999,
+            scale = 0.65,
+        })
+        blind_score.config.ref_table = nil
+        blind_score.config.ref_value = nil
+
+        chip_total.UIT = G.UIT.O
+        chip_total.config.object = DynaText({
+            string = '?????',
+            colours = {G.C.DARK_EDITION},
+            bump = true,
+            pop_in_rate = 99999999,
+            scale = 0.65,
+        })
+        chip_total.config.ref_table = nil
+        chip_total.config.ref_value = nil
+        chip_total.UIBox:recalculate()
+
+        return
+    end
+
+    blind_score.UIT = G.UIT.T
+    blind_score.config.ref_table = G.GAME.blind
+    blind_score.config.ref_value = 'chip_text'
+    if blind_score.config.object then blind_score.config.object:remove() end
+
+    chip_total.UIT = G.UIT.T
+    chip_total.config.ref_table = G.GAME
+    chip_total.config.ref_value = 'chips_text'
+    if chip_total.config.object then chip_total.config.object:remove() end
+
+    blind_score:juice_up()
+    chip_total:juice_up()
+end
+
+
+---------------------------
+--------------------------- Initialization blind functions
+---------------------------
+
+function SMODS.init_extra_blind(X, Y, W, H, extra_source)
+	local extra_blind = Blind(X, Y, W, H)
+	sendDebugMessage(tostring('extra blind: '..tostring(extra_blind)))
+	Moveable.init(extra_blind, X, Y, W, H)
+	extra_blind.extra_blind = extra_source
+
+	extra_blind.children = {}
+	extra_blind.config = {}
+	extra_blind.states.visible = false
+	extra_blind.states.collide.can = false
+	extra_blind.states.drag.can = false
+	extra_blind.loc_debuff_lines = {'',''}
+
+	if getmetatable(extra_blind) == Blind then
+		table.insert(G.I.CARD, extra_blind)
+	end
+
+	return extra_blind
+end
+
+function Blind:extra_set_blind(blind, reset)
+	if not reset then
+		self.config.blind = blind
+		self.effect = type(self.config.blind.config) == "table" and copy_table(self.config.blind.config) or {}
+		self.name = blind.name
+		self.debuff = blind.debuff
+		self.dollars = G.GAME.blind.dollars
+		if self.config.blind.score_invisible or G.GAME.modifiers.all_scores_hidden then
+			if not G.GAME.modifiers.hide_blind_score then
+				G.GAME.modifiers.hide_blind_score = true
+				set_blind_score_visible(false)
+			end
+			if self.config.blind.score_invisible then self.triggered = true end
+		else
+			self.mult = blind.mult / 2
+		end
+
+		self.disabled = false
+		self.discards_sub = nil
+		self.hands_sub = nil
+		self.boss = not not blind.boss
+		self.blind_set = false
+		self.triggered = nil
+		self.prepped = true
+		self:set_text()
+
+		-- applying any relative mults
+		G.GAME.blind.chips = G.GAME.blind.chips * self.mult
+		G.GAME.blind.chip_text = number_format(G.GAME.blind.chips)
+		if not G.GAME.blind.boss then
+			G.GAME.blind.boss = self.boss
+		end
+
+		self.chips = G.GAME.blind.chips
+		self.chip_text = G.GAME.blind.chip_text
+	end
+
+	if blind then
+        self.in_blind = true
+    end
+
+	local old_main_blind = G.GAME.blind
+	G.GAME.blind = self
+	local obj = self.config.blind
+	if not reset and obj.set_blind and type(obj.set_blind) == 'function' then
+		obj:set_blind()
+	elseif self.name == 'The Eye' and not reset then
+		self.hands = {
+			["Flush Five"] = false,
+			["Flush House"] = false,
+			["Five of a Kind"] = false,
+			["Straight Flush"] = false,
+			["Four of a Kind"] = false,
+			["Full House"] = false,
+			["Flush"] = false,
+			["Straight"] = false,
+			["Three of a Kind"] = false,
+			["Two Pair"] = false,
+			["Pair"] = false,
+			["High Card"] = false,
+		}
+	elseif self.name == 'The Mouth' and not reset then
+		self.only_hand = false
+	elseif self.name == 'The Fish' and not reset then
+		self.prepped = nil
+	elseif self.name == 'The Water' and not reset then
+		self.discards_sub = G.GAME.current_round.discards_left
+		ease_discard(-self.discards_sub)
+	elseif self.name == 'The Needle' and not reset then
+		self.hands_sub = G.GAME.round_resets.hands - 1
+		ease_hands_played(-self.hands_sub)
+	elseif self.name == 'The Manacle' and not reset then
+		G.hand:change_size(-1)
+	elseif self.name == 'Amber Acorn' and not reset and #G.jokers.cards > 0 then
+		G.jokers:unhighlight_all()
+		for k, v in ipairs(G.jokers.cards) do
+			v:flip()
+		end
+		if #G.jokers.cards > 1 then
+			G.E_MANAGER:add_event(Event({ trigger = 'after', delay = 0.2, func = function()
+				G.E_MANAGER:add_event(Event({ func = function() G.jokers:shuffle('aajk'); play_sound('cardSlide1', 0.85);return true end }))
+				delay(0.15)
+				G.E_MANAGER:add_event(Event({ func = function() G.jokers:shuffle('aajk'); play_sound('cardSlide1', 1.15);return true end }))
+				delay(0.15)
+				G.E_MANAGER:add_event(Event({ func = function() G.jokers:shuffle('aajk'); play_sound('cardSlide1', 1);return true end }))
+				delay(0.5)
+			return true end }))
+		end
+	end
+
+	--add new debuffs
+	for _, v in ipairs(G.playing_cards) do
+		if not v.debuffed_by_blind then
+			self:debuff_card(v)
+		end
+	end
+
+	for _, v in ipairs(G.jokers.cards) do
+		if not reset and not v.debuffed_by_blind then self:debuff_card(v, true) end
+	end
+
+	G.GAME.blind = old_main_blind
+	G.GAME.blind.chips = self.chips
+	G.GAME.blind.chip_text = self.chip_text
+	G.GAME.blind.dollars = self.dollars
+end
+
+local ref_blind_set = Blind.set_blind
+function Blind:set_blind(blind, reset, silent)
+	if self.extra_blind then
+		if blind or reset then
+			return self:extra_set_blind(self.config.blind, reset)
+		end
+
+		return
+	end
+
+	G.GAME.modifiers.hide_blind_score = nil
+	self.newrun_flag = nil
+
+
+	if blind and (blind.score_invisible or G.GAME.modifiers.all_scores_hidden) then
+		G.GAME.modifiers.hide_blind_score = true
+		set_blind_score_visible(false)
+
+		if blind.score_invisible then self.triggered = true end
+	end
+
+	self.effect = type((blind or {}).config) == "table" and copy_table((blind or {}).config) or {}
+	local ret = ref_blind_set(self, blind, reset, silent)
+	for _, v in ipairs(G.consumeables.cards) do
+        if not reset and v.ability.set == 'Stand' then self:debuff_card(v, true) end
+    end
+
+	if not reset then
+		self.main_blind_disabled = nil
+	end
+
+	if not (blind or reset) then return ret end
+
+	for _, v in ipairs(G.GAME.extra_blinds) do
+		if self.config.blind ~= v.config.blind then
+			v:extra_set_blind(v.config.blind, reset)
+		end
+	end
+
+	return ret
+end
+
+--- reimplementation because the original has a lot of visuals for "defeat"
+--- You can't "defeat" extra blinds except by selling the joker
+local ref_blind_defeat = Blind.defeat
+function Blind:defeat(silent)
+	if not self.extra_blind then self.disabled = self.main_blind_disabled end
+	local ret = ref_blind_defeat(self, silent)
+
+	-- extra blinds cannot really be "defeated" with the current code
+	G.hand.config.card_limits.blind_restriction = nil
+	SMODS.calculate_context({ blind_defeated = true })
+
+	if (self.config.blind.score_invisible or G.GAME.modifiers.all_scores_hidden) and G.GAME.modifiers.hide_blind_score then
+		G.GAME.modifiers.hide_blind_score = nil
+		set_blind_score_visible(true)
+	end
+
+	-- although this is not recursive, this check still exists for if
+	-- defeat gets called by, say, the joker controlling the extra blind when sold
+	if not self.extra_blind then
+		self.disabled = false
+		for _, v in ipairs(G.GAME.extra_blinds) do
+			if self.config.blind ~= v.config.blind then
+				v.chips = self.chips
+				v.chip_text = number_format(self.chips)
+				v.dollars = self.dollars
+				G.GAME.blind = v
+
+				for _, val in ipairs(G.jokers.cards) do
+					if val.facing == 'back' then val:flip() end
+				end
+				local obj = v.config.blind
+				if obj.defeat and type(obj.defeat) == 'function' then
+					obj:defeat()
+				elseif v.name == 'Crimson Heart' then
+					for _, val in ipairs(G.jokers.cards) do
+						val.ability.crimson_heart_chosen = nil
+					end
+				elseif v.name == 'The Manacle' and not v.disabled then
+					G.hand:change_size(1)
+				end
+
+				self.chips = v.chips
+				self.chip_text = number_format(v.chips)
+				self.dollars = v.dollars
+				G.GAME.blind = self
+			end
+		end
+	end
+
+	return ret
+end
+
+local ref_blind_disable = Blind.disable
+function Blind:disable(...)
+	if not self.extra_blind then
+		local ret = nil
+		if not self.main_blind_disabled then
+			self.main_blind_disabled = not self.disabled
+			ret = ref_blind_disable(self, ...)
+			SMODS.calculate_context({ blind_disabled = true })
+			if (self.config.blind.score_invisible or G.GAME.modifiers.all_scores_hidden) and G.GAME.modifiers.hide_blind_score then
+				G.GAME.modifiers.hide_blind_score = nil
+				set_blind_score_visible(true)
+			end
+		end
+
+		if self.main_blind_disabled then self.boss = false end
+		self.disabled = false
+
+		for _, v in ipairs(G.GAME.extra_blinds) do
+			if self.config.blind ~= v.config.blind and not v.disabled then
+				v.chips = self.chips
+				v.chip_text = number_format(self.chips)
+				v.dollars = self.dollars
+				G.GAME.blind = v
+
+				ref_blind_disable(v, ...)
+
+				self.chips = v.chips
+				self.chip_text = number_format(v.chips)
+				self.dollars = v.dollars
+				G.GAME.blind = self
+			end
+		end
+
+		return ret
+	end
+
+	self.chips = G.GAME.blind.chips
+	self.chip_text = number_format(G.GAME.blind.chips)
+	self.dollars = G.GAME.blind.dollars
+	G.GAME.blind = self
+
+	local ret = ref_blind_disable(self, ...)
+
+	if (self.config.blind.score_invisible or G.GAME.modifiers.all_scores_hidden) and G.GAME.modifiers.hide_blind_score then
+		G.GAME.modifiers.hide_blind_score = nil
+		set_blind_score_visible(true)
+	end
+
+	G.GAME.blind.chips = self.chips
+	G.GAME.blind.chip_text = number_format(self.chips)
+	G.GAME.blind.dollars = self.dollars
+	G.GAME.blind = G.GAME.blind
+
+	return ret
+end
+
+local ref_blind_type = Blind.get_type
+function Blind:get_type()
+    if self.extra_blind then
+		return 'Extra'
+	end
+
+	-- maintaining that it returns nothing when out of a blind? Maybe
+	if self.name ~= '' then
+		return G.GAME.round_resets.effective_blind
+	end
+end
+
+
+
+
+
+---------------------------
+--------------------------- hook for cardarea warning text behavior
+---------------------------
+
+local ref_cardarea_highlighted = CardArea.parse_highlighted
+function CardArea:parse_highlighted(...)
+    for k, v in pairs(G.GAME.extra_blinds) do
+        v.extra_boss_throw_hand = nil
+    end
+
+    return ref_cardarea_highlighted(self, ...)
+end
+
+
+
+
+---------------------------
+--------------------------- for the sake of cleanup, don't want these hanging in the background
+---------------------------
+
+local ref_game_delete = Game.delete_run
+function Game:delete_run(...)
+    local ret = ref_game_delete(self, ...)
+
+
+    if G.GAME and G.GAME.extra_blinds and next(G.GAME.extra_blinds) then
+        for _, v in ipairs(G.GAME.extra_blinds) do
+            v:remove()
+        end
+        G.GAME.extra_blinds = nil
+    end
+
+    return ret
+end
+
+
+
+
+
+---------------------------
+--------------------------- Visual Blind Functions
+---------------------------
+
+local ref_blind_colour = Blind.change_colour
+function Blind:change_colour(blind_col)
+	if self.extra_blind then return end
+
+	-- redeclare these to reset table references
+	if not self.newrun_flag and next(self.config.blind) and not blind_col and G.STATE ~= G.STATES.ROUND_EVAL then
+		local blind = self.config.blind
+		local col_primary = blind.boss_colour and blind.boss_colour.colours and blind.boss_colour or nil
+        local col_special = blind.special_colour and blind.special_colour.colours and blind.special_colour or nil
+        local col_tertiary = blind.tertiary_colour and blind.tertiary_colour.colours and blind.tertiary_colour or nil
+
+		if col_primary or col_special or col_tertiary then
+			G.GAME.gradient_ui = true
+
+			if col_primary then
+				local predict_primary = SMODS.predict_gradient(col_primary, 0.3)
+				ease_colour(G.C.DYN_UI.MAIN, predict_primary)
+				ease_colour(G.C.DYN_UI.BOSS_MAIN, predict_primary)
+				G.E_MANAGER:add_event(Event({
+					trigger = 'after',
+					blockable = false,
+					blocking = false,
+					delay =  0.35,
+					func = function()
+						G.C.DYN_UI.MAIN = col_primary
+						G.C.DYN_UI.BOSS_MAIN = col_primary
+						return true
+					end
+				}))
+			else
+				ease_colour(G.C.DYN_UI.MAIN, blind.boss_colour)
+				ease_colour(G.C.DYN_UI.BOSS_MAIN, blind.boss_colour)
+			end
+
+			if col_special then
+				local predict_special = SMODS.predict_gradient(col_special, 0.3)
+				ease_colour(G.C.DYN_UI.DARK, predict_special)
+				G.E_MANAGER:add_event(Event({
+					trigger = 'after',
+					blockable = false,
+					blocking = false,
+					delay =  0.35,
+					func = function()
+						G.C.DYN_UI.DARK = col_special
+						return true
+					end
+				}))
+			else
+				ease_colour(G.C.DYN_UI.DARK, blind.special_colour or mix_colours(col_primary, G.C.BLACK, 0.4))
+			end
+
+			if col_tertiary then
+				local predict_tertiary = SMODS.predict_gradient(col_tertiary, 0.3)
+				ease_colour(G.C.DYN_UI.DARK, predict_tertiary)
+				G.E_MANAGER:add_event(Event({
+					trigger = 'after',
+					blockable = false,
+					blocking = false,
+					delay =  0.35,
+					func = function()
+						G.C.DYN_UI.BOSS_DARK = col_tertiary
+						return true
+					end
+				}))
+			else
+				ease_colour(G.C.DYN_UI.BOSS_DARK, blind.tertiary_colour or mix_colours(col_primary, G.C.BLACK, 0.2))
+			end
+
+			-- manual recreation of UI because for some reason I have to
+			G.E_MANAGER:add_event(Event({
+				trigger = 'after',
+				blockable = false,
+				blocking = false,
+				delay =  0.8,
+				func = function()
+					SMODS.manual_ui_reload(0)
+					return true
+				end
+			}))
+			return
+		end
+	end
+
+	return ref_blind_colour(self, blind_col)
+end
+
+local ref_alert_debuff = Blind.alert_debuff
+function Blind:alert_debuff(first)
+	if not self.extra_blind and self.main_blind_disabled then
+		self.block_play = nil
+		return
+	end
+
+	return ref_alert_debuff(self, first)
+end
+
+local ref_debuff_text = Blind.get_loc_debuff_text
+function Blind:get_loc_debuff_text()
+	if self.extra_blind then
+		local old_main_blind = G.GAME.blind
+		G.GAME.blind = self
+		local ret = ref_debuff_text(self)
+		G.GAME.blind = old_main_blind
+		return ret
+	end
+
+	return ref_debuff_text(self)
+end
+
+local ref_blind_wiggle = Blind.wiggle
+function Blind:wiggle()
+	if self.extra_blind then
+		if next(self.extra_blind) then
+			card_eval_status_text(
+				self.extra_blind,
+				'extra',
+				nil, nil, nil,
+				{
+					message = self.disabled and localize('k_disabled_ex') or self.loc_name,
+					colour = self.disabled and G.C.FILTER or get_blind_main_colour(self.config.blind.key),
+					delay = 0.8,
+					volume = 0,
+				}
+			)
+		end
+
+		G.E_MANAGER:add_event(Event({
+			trigger = 'after',
+			delay = 0.06*G.SETTINGS.GAMESPEED,
+			blockable = false,
+			blocking = false,
+			func = function()
+				play_sound('tarot2', 0.76, 0.4);
+				return true
+				end
+			}))
+		play_sound('tarot2', 1, 0.4)
+		return
+	end
+
+	return ref_blind_wiggle(self)
+end
+
+local ref_blind_juice = Blind.juice_up
+function Blind:juice_up(_a, _b)
+	if self.extra_blind and next(self.extra_blind) then
+		card_eval_status_text(
+			self.extra_blind,
+			'extra',
+			nil, nil, nil,
+			{
+				message = self.disabled and localize('k_disabled_ex') or self.loc_name,
+				colour = self.disabled and G.C.FILTER or get_blind_main_colour(self.config.blind.key),
+				delay = 0.8,
+				volume = 0,
+			}
+		)
+		return
+	end
+
+	return ref_blind_juice(self, _a, _b)
+end
+
+local ref_blind_hover = Blind.hover
+function Blind:hover()
+	if self.extra_blind then return end
+	return ref_blind_hover(self)
+end
+
+local ref_blind_stop_hover = Blind.stop_hover
+function Blind:stop_hover()
+    if self.extra_blind then return end
+	return ref_blind_stop_hover(self)
+end
+
+local ref_blind_draw = Blind.draw
+function Blind:draw()
+	if self.extra_blind then return end
+	return ref_blind_draw(self)
+end
+
+local ref_blind_move = Blind.move
+function Blind:move(dt)
+	if self.extra_blind then return end
+	return ref_blind_move(self, dt)
+end
+
+local ref_blind_dims = Blind.change_dim
+function Blind:change_dim(w, h)
+	if self.extra_blind then return end
+	return ref_blind_dims(self, w, h)
+end
+
+
+
+
+---------------------------
+--------------------------- Debuff functions
+---------------------------
+
+--- press_play() main functionality is handled with a lovely patch
+local ref_blind_play = Blind.press_play
+function Blind:press_play()
+	if not self.extra_blind then
+		self.disabled = self.main_blind_disabled
+		self.main_play_loop = true
+		local ret = ref_blind_play(self)
+		SMODS.calculate_context({ press_play = true })
+		return ret
+	end
+
+	local old_main_blind = G.GAME.blind
+	self.chips = old_main_blind.chips
+	self.chip_text = number_format(old_main_blind.chips)
+	self.dollars = old_main_blind.dollars
+	G.GAME.blind = self
+
+	local ret = ref_blind_play(self)
+
+	old_main_blind.chips = self.chips
+	old_main_blind.chip_text = number_format(self.chips)
+	old_main_blind.dollars = self.dollars
+	G.GAME.blind = old_main_blind
+
+	if ret and next(self.extra_blind) then
+		local juice_obj = self.extra_blind
+		G.E_MANAGER:add_event(Event({
+			trigger = 'immediate',
+			func = function()
+				attention_text({
+					text = self.disabled and localize('k_disabled_ex') or self.loc_name,
+					scale = 1,
+					hold = 0.45,
+					backdrop_colour = self.disabled and G.C.FILTER or get_blind_main_colour(self.config.blind.key),
+					align = 'bm',
+					major = juice_obj,
+					offset = { x = 0, y = 0.05*juice_obj.T.h}
+				})
+				if juice_obj.juice_up then juice_obj:juice_up() end
+				play_sound('generic1', (0.9 + 0.2*math.random())*0.2 + 0.8, 1)
+				return true
+			end
+		}))
+	end
+
+	return ret
+end
+
+
+local ref_blind_drawn = Blind.drawn_to_hand
+function Blind:drawn_to_hand()
+	if not self.extra_blind then self.disabled = self.main_blind_disabled end
+	local ret = ref_blind_drawn(self)
+
+
+	if not self.extra_blind then
+		self.disabled = false
+		self.main_play_loop = nil
+		for _, v in ipairs(G.GAME.extra_blinds) do
+			if self.config.blind ~= v.config.blind then
+				v.chips = self.chips
+				v.chip_text = number_format(self.chips)
+				v.dollars = self.dollars
+				G.GAME.blind = v
+
+				ref_blind_drawn(v)
+
+				self.chips = v.chips
+				self.chip_text = number_format(v.chips)
+				self.dollars = v.dollars
+				G.GAME.blind = self
+			end
+		end
+		G.GAME.blind = self
+	end
+
+	return ret
+end
+
+
+
+
+
+---------------------------
+--------------------------- Saving and Loading Functions
+---------------------------
+
+local ref_blind_save = Blind.save
+function Blind:save()
+	local ret = ref_blind_save(self)
+
+	ret.effect = self.effect
+	ret.main_blind_disabled = self.main_blind_disabled
+
+	if self.extra_blind then
+		ret.extra_blind = (self.extra_blind.is and self.extra_blind:is(Blind) and self.extra_blind.config.blind.key) or self.extra_blind.unique_val or true
+		ret.dollars = nil
+	end
+
+	local obj = self.config.blind
+	if obj.save and type(obj.save) == 'function' then
+		obj:save(ret)
+	end
+
+	return ret
+end
+
+local ref_blind_load = Blind.load
+function Blind:load(blindTable)
+	if not self.extra_blind then
+		local ret = ref_blind_load(self, blindTable)
+		self.effect = blindTable.effect
+
+		if (self.config.blind.score_invisible or G.GAME.modifiers.all_scores_hidden) and G.GAME.modifiers.hide_blind_score then
+			set_blind_score_visible(false)
+			if self.config.blind.score_invisible then self.triggered = true end
+		end
+
+		local obj = self.config.blind
+		if self.in_blind and obj.load and type(obj.load) == 'function' then
+			obj:load(blindTable)
+		end
+
+		return ret
+	end
+
+	self.in_blind = blindTable.in_blind
+	self.config.blind = G.P_BLINDS[blindTable.config_blind] or {}
+
+	self.effect = blindTable.effect
+    self.name = blindTable.name
+    self.debuff = blindTable.debuff
+    self.mult = blindTable.mult
+    self.disabled = blindTable.disabled
+	self.main_blind_disabled = blindTable.main_blind_disabled
+    self.discards_sub = blindTable.discards_sub
+    self.hands_sub = blindTable.hands_sub
+    self.boss = blindTable.boss
+    self.hands = blindTable.hands
+    self.only_hand = blindTable.only_hand
+    self.triggered = blindTable.triggered
+	self:set_text()
+
+	if (self.config.blind.score_invisible or G.GAME.modifiers.all_scores_hidden) and G.GAME.modifiers.hide_blind_score then
+		set_blind_score_visible(false)
+		if self.config.blind.score_invisible then self.triggered = true end
+	end
+
+	local obj = self.config.blind
+	if self.in_blind and obj.load and type(obj.load) == 'function' then
+		obj:load(blindTable)
+	end
+end
+
+
+---------------------------
+--------------------------- Check for card added behavior
+---------------------------
+
+function Blind:card_added(card)
+	local obj = self.config.blind
+	if obj.card_added and type(obj.card_added) == 'function' then
+        obj:card_added(card)
+	end
+end
+
+
+
+
+
+---------------------------
+--------------------------- Ensure blinds are removed from G.I.CARD to prevent memory leak/weirdness
+--------------------------- Vanilla only ever creates one blind object
+---------------------------
+
+function Blind:remove()
+	for k, v in pairs(G.I.CARD) do
+        if v == self then
+            table.remove(G.I.CARD, k)
+        end
+    end
+    Moveable.remove(self)
+end
+
+
+
+
+
+---------------------------
+--------------------------- Extra boss support for common events
+---------------------------
+
+local ref_background_blind = ease_background_colour_blind
+function ease_background_colour_blind(...)
+    local args = {...}
+    local state = args[1]
+    if state == G.STATES.ROUND_EVAL then
+        -- reset the table references so the gradients aren't active anymore
+        if G.GAME.gradient_background then
+            G.C.BACKGROUND.L = { G.C.BACKGROUND.L[1], G.C.BACKGROUND.L[2], G.C.BACKGROUND.L[3], G.C.BACKGROUND.L[4] }
+            G.C.BACKGROUND.D = { G.C.BACKGROUND.D[1], G.C.BACKGROUND.D[2], G.C.BACKGROUND.D[3], G.C.BACKGROUND.D[4] }
+            G.C.BACKGROUND.C = { G.C.BACKGROUND.C[1], G.C.BACKGROUND.C[2], G.C.BACKGROUND.C[3], G.C.BACKGROUND.C[4] }
+            G.C.BACKGROUND.contrast = G.C.BACKGROUND.contrast
+            G.GAME.gradient_background = nil
+        end
+
+        if G.GAME.gradient_ui then
+            G.C.DYN_UI.MAIN = { G.C.DYN_UI.MAIN[1], G.C.DYN_UI.MAIN[2], G.C.DYN_UI.MAIN[3], G.C.DYN_UI.MAIN[4] }
+            G.C.DYN_UI.DARK = { G.C.DYN_UI.DARK[1], G.C.DYN_UI.DARK[2], G.C.DYN_UI.DARK[3], G.C.DYN_UI.DARK[4] }
+            G.C.DYN_UI.BOSS_MAIN = { G.C.DYN_UI.BOSS_MAIN[1], G.C.DYN_UI.BOSS_MAIN[2], G.C.DYN_UI.BOSS_MAIN[3], G.C.DYN_UI.BOSS_MAIN[4] }
+            G.C.DYN_UI.BOSS_DARK = { G.C.DYN_UI.BOSS_DARK[1], G.C.DYN_UI.BOSS_DARK[2], G.C.DYN_UI.BOSS_DARK[3], G.C.DYN_UI.BOSS_DARK[4] }
+            G.GAME.gradient_ui = nil
+            SMODS.manual_ui_reload(0)
+        end
+    elseif G.GAME.blind and G.GAME.blind.in_blind then
+        local blind = G.P_BLINDS[G.GAME.blind.config.blind.key]
+        local col_primary = blind.boss_colour and blind.boss_colour.colours and blind.boss_colour or nil
+        local col_special = blind.special_colour and blind.special_colour.colours and blind.special_colour or nil
+        local col_tertiary = blind.tertiary_colour and blind.tertiary_colour.colours and blind.tertiary_colour or nil
+
+        if col_primary or col_special or col_tertiary then
+            G.GAME.gradient_background = true
+
+            if col_primary and col_primary ~= G.C.BACKGROUND.L then
+                local predict_primary = SMODS.predict_gradient(col_primary, 0.8)
+                ease_value(G.C.BACKGROUND.L, 1, predict_primary[1]*1.3 - G.C.BACKGROUND.L[1], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.L, 2, predict_primary[2]*1.3 - G.C.BACKGROUND.L[2], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.L, 3, predict_primary[3]*1.3 - G.C.BACKGROUND.L[3], false, nil, true, 0.8)
+                G.E_MANAGER:add_event(Event({
+					trigger = 'after',
+					blockable = false,
+					blocking = false,
+					delay =  0.85,
+					func = function()
+						G.C.BACKGROUND.L = col_primary
+						return true
+					end
+				}))
+            elseif blind.boss_colour ~= G.C.BACKGROUND.L then
+                ease_value(G.C.BACKGROUND.L, 1, blind.boss_colour[1]*1.3 - G.C.BACKGROUND.L[1], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.L, 2, blind.boss_colour[2]*1.3 - G.C.BACKGROUND.L[2], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.L, 3, blind.boss_colour[3]*1.3 - G.C.BACKGROUND.L[3], false, nil, true, 0.8)
+            end
+
+            if col_special and col_special ~= G.C.BACKGROUND.C then
+                local predict_special = SMODS.predict_gradient(col_special, 0.8)
+                ease_value(G.C.BACKGROUND.C, 1, predict_special[1]*1.3 - G.C.BACKGROUND.C[1], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.C, 2, predict_special[2]*1.3 - G.C.BACKGROUND.C[2], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.C, 3, predict_special[3]*1.3 - G.C.BACKGROUND.C[3], false, nil, true, 0.8)
+                G.E_MANAGER:add_event(Event({
+					trigger = 'after',
+					blockable = false,
+					blocking = false,
+					delay =  0.85,
+					func = function()
+						G.C.BACKGROUND.C = col_special
+						return true
+					end
+				}))
+            elseif (blind.special_colour or blind.boss_colour) ~= G.C.BACKGROUND.C then
+                col_special = blind.special_colour or blind.boss_colour
+                ease_value(G.C.BACKGROUND.C, 1, col_special[1]*0.9 - G.C.BACKGROUND.C[1], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.C, 2, col_special[2]*0.9 - G.C.BACKGROUND.C[2], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.C, 3, col_special[3]*0.9 - G.C.BACKGROUND.C[3], false, nil, true, 0.8)
+            end
+
+            if col_tertiary and col_tertiary ~= G.C.BACKGROUND.D then
+                local predict_tertiary = SMODS.predict_gradient(col_tertiary, 0.8)
+                ease_value(G.C.BACKGROUND.D, 1, predict_tertiary[1]*0.4 - G.C.BACKGROUND.D[1], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.D, 2, predict_tertiary[2]*0.4 - G.C.BACKGROUND.D[2], false, nil, true, 0.8)
+                ease_value(G.C.BACKGROUND.D, 3, predict_tertiary[3]*0.4 - G.C.BACKGROUND.D[3], false, nil, true, 0.8)
+                G.E_MANAGER:add_event(Event({
+					trigger = 'after',
+					blockable = false,
+					blocking = false,
+					delay =  0.85,
+					func = function()
+						G.C.BACKGROUND.D = col_tertiary
+						return true
+					end
+				}))
+            elseif (blind.tertiary_colour or blind.boss_colour) ~= G.C.BACKGROUND.D then
+                col_tertiary = blind.tertiary_colour or blind.boss_colour
+                ease_value(G.C.BACKGROUND.D, 1, col_tertiary[1]*0.4 - G.C.BACKGROUND.D[1], false, nil, true, 0.6)
+                ease_value(G.C.BACKGROUND.D, 2, col_tertiary[2]*0.4 - G.C.BACKGROUND.D[2], false, nil, true, 0.6)
+                ease_value(G.C.BACKGROUND.D, 3, col_tertiary[3]*0.4 - G.C.BACKGROUND.D[3], false, nil, true, 0.6)
+            end
+
+            G.C.BACKGROUND.contrast = blind.contrast or G.C.BACKGROUND.contrast
+            return
+        end
+    end
+
+    return ref_background_blind(...)
+end
+
+
+
+
+
+---------------------------
+--------------------------- Overwrite to make this simpler
+--------------------------- / add replacement behavior
+---------------------------
+
+function get_new_boss(replace_type)
+    G.GAME.perscribed_bosses = G.GAME.perscribed_bosses or {}
+    if G.GAME.perscribed_bosses and G.GAME.perscribed_bosses[G.GAME.round_resets.ante] then
+        local ret_boss = G.GAME.perscribed_bosses[G.GAME.round_resets.ante]
+        G.GAME.perscribed_bosses[G.GAME.round_resets.ante] = nil
+        G.GAME.bosses_used[ret_boss] = G.GAME.bosses_used[ret_boss] + 1
+        return ret_boss
+    elseif G.FORCE_BOSS then return G.FORCE_BOSS end
+
+    replace_type = replace_type or 'Boss'
+    local get_showdown = (replace_type == 'Boss' and (G.GAME.modifiers.all_showdown or ((G.GAME.round_resets.ante%G.GAME.win_ante) == 0 and G.GAME.round_resets.ante >= 1)))
+
+    local eligible_bosses = {}
+    local num_bosses = 0
+    local min_use = 1000
+
+    for k, v in pairs(G.P_BLINDS) do
+		local res, options = SMODS.add_to_pool(v)
+        options = options or {}
+
+        if v.boss and not G.GAME.banned_keys[k] and G.GAME.bosses_used[k] <= min_use then
+
+            if res and options.ignore_showdown_check or ((get_showdown and v.boss.showdown) or (not get_showdown and not v.boss.showdown and v.boss.min <= math.max(1, G.GAME.round_resets.ante))) then
+                if G.GAME.bosses_used[k] < min_use then
+                    min_use = G.GAME.bosses_used[k]
+                    eligible_bosses = {}
+                end
+                eligible_bosses[k] = true
+                num_bosses = num_bosses + 1
+            end
+        end
+    end
+
+    if num_bosses < 1 then return 'bl_small' end
+
+    local _, boss = pseudorandom_element(eligible_bosses, pseudoseed('boss'))
+    G.GAME.bosses_used[boss] = G.GAME.bosses_used[boss] + 1
+    return boss
+end
+
+local ref_reset_blinds = reset_blinds
+function reset_blinds()
+    local boss_defeated = G.GAME.round_resets.blind_states.Boss == 'Defeated'
+    local ret = ref_reset_blinds()
+
+    if boss_defeated and G.GAME.modifiers.all_bosses then
+        G.GAME.round_resets.blind_choices.Small = get_new_boss('Small')
+        G.GAME.round_resets.blind_choices.Big = get_new_boss('Big')
+    end
+
+    return ret
+end
+
+
 
 local card_set_base = Card.set_base
 function Card:set_base(card, initial, manual_sprites)
@@ -2345,7 +3438,7 @@ function Card:set_base(card, initial, manual_sprites)
                 SMODS.merge_defaults(contexts, {change_rank = true, other_card = self, new_rank = new_rank, old_rank = self.base.id, rank_increase = ((self.base.id < new_rank) and true) or false})
             end
         end
-        if card and card.suit and self.base.suit ~= card.suit then 
+        if card and card.suit and self.base.suit ~= card.suit then
             SMODS.merge_defaults(contexts, {change_suit = true, other_card = self, new_suit = card.suit, old_suit = self.base.suit})
         end
         if next(contexts) then
@@ -2421,4 +3514,25 @@ function add_tag(_tag)
 		_tag = Tag(_tag.key, nil, _tag.blind_type)
 	end
 	add_tag_ref(_tag)
+end
+
+local ref_go_menu = G.FUNCS.go_to_menu
+G.FUNCS.go_to_menu = function(e)
+    if G.GAME.gradient_background then
+        G.C.BACKGROUND.L = { G.C.BACKGROUND.L[1], G.C.BACKGROUND.L[2], G.C.BACKGROUND.L[3], G.C.BACKGROUND.L[4] }
+        G.C.BACKGROUND.D = { G.C.BACKGROUND.D[1], G.C.BACKGROUND.D[2], G.C.BACKGROUND.D[3], G.C.BACKGROUND.D[4] }
+        G.C.BACKGROUND.C = { G.C.BACKGROUND.C[1], G.C.BACKGROUND.C[2], G.C.BACKGROUND.C[3], G.C.BACKGROUND.C[4] }
+        G.C.BACKGROUND.contrast = G.C.BACKGROUND.contrast
+        G.GAME.gradient_background = nil
+    end
+
+    if G.GAME.gradient_ui then
+        G.C.DYN_UI.MAIN = { G.C.DYN_UI.MAIN[1], G.C.DYN_UI.MAIN[2], G.C.DYN_UI.MAIN[3], G.C.DYN_UI.MAIN[4] }
+        G.C.DYN_UI.DARK = { G.C.DYN_UI.DARK[1], G.C.DYN_UI.DARK[2], G.C.DYN_UI.DARK[3], G.C.DYN_UI.DARK[4] }
+        G.C.DYN_UI.BOSS_MAIN = { G.C.DYN_UI.BOSS_MAIN[1], G.C.DYN_UI.BOSS_MAIN[2], G.C.DYN_UI.BOSS_MAIN[3], G.C.DYN_UI.BOSS_MAIN[4] }
+        G.C.DYN_UI.BOSS_DARK = { G.C.DYN_UI.BOSS_DARK[1], G.C.DYN_UI.BOSS_DARK[2], G.C.DYN_UI.BOSS_DARK[3], G.C.DYN_UI.BOSS_DARK[4] }
+        G.GAME.gradient_ui = nil
+    end
+
+    return ref_go_menu(e)
 end

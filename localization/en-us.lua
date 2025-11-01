@@ -286,5 +286,12 @@ return {
                 "Current version: #2#",
             }
 		},
+        v_text = {
+			-- general behavior
+            ch_c_all_bosses = {"{C:attention}Small{} and {C:attention}Big Blinds{} are {C:attention}Boss Blinds{}"},
+			ch_c_all_showdown = {"{C:attention}Boss Blinds{} are {C:attention}Final Boss Blinds{}"},
+            ch_c_all_scores_hidden = {"{C:attention}Blind requirements{} are {C:dark_edition}hidden{}"},
+            ch_c_extra_blind_active = {"{B:1,C:white}#1#{} is {C:attention}always active{}"},
+		},
 	}
 }

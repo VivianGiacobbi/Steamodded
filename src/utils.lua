@@ -2746,9 +2746,13 @@ end
 
 G.FUNCS.update_blind_debuff_text = function(e)
     if not e.config.object then return end
+
     local new_str = SMODS.debuff_text or G.GAME.blind:get_loc_debuff_text()
-    if new_str ~= e.config.object.string then
-        e.config.object.config.string = {new_str}
+    if not new_str then return end
+
+    if new_str ~= e.config.object.config.string[1].string then
+        e.config.object.config.string[1].string = new_str
+        e.config.object.start_pop_in = true
         e.config.object:update_text(true)
         e.UIBox:recalculate()
     end
@@ -2779,17 +2783,55 @@ function SMODS.is_eternal(card, trigger)
     return ret
 end
 
--- Scoring Calculation API
-function SMODS.set_scoring_calculation(key)
-    G.GAME.current_scoring_calculation = SMODS.Scoring_Calculations[key]:new()
-    G.FUNCS.SMODS_scoring_calculation_function(G.HUD:get_UIE_by_ID('hand_text_area'))
-    G.HUD:get_UIE_by_ID('hand_operator_container').UIBox:recalculate()
-    SMODS.refresh_score_UI_list()
+
+
+
+
+---------------------------
+--------------------------- Management for gradient backgrounds and UIs
+---------------------------
+
+local ref_start_run = G.FUNCS.start_run
+G.FUNCS.start_run = function(...)
+    if G.GAME.blind then
+        G.GAME.blind.in_blind = false
+        G.GAME.blind.newrun_flag = true
+    end
+
+    if G.GAME.gradient_background then
+        G.C.BACKGROUND.L = { G.C.BACKGROUND.L[1], G.C.BACKGROUND.L[2], G.C.BACKGROUND.L[3], G.C.BACKGROUND.L[4] }
+        G.C.BACKGROUND.D = { G.C.BACKGROUND.D[1], G.C.BACKGROUND.D[2], G.C.BACKGROUND.D[3], G.C.BACKGROUND.D[4] }
+        G.C.BACKGROUND.C = { G.C.BACKGROUND.C[1], G.C.BACKGROUND.C[2], G.C.BACKGROUND.C[3], G.C.BACKGROUND.C[4] }
+        G.C.BACKGROUND.contrast = G.C.BACKGROUND.contrast
+        G.GAME.gradient_background = nil
+    end
+
+    if G.GAME.gradient_ui then
+        G.C.DYN_UI.MAIN = { G.C.DYN_UI.MAIN[1], G.C.DYN_UI.MAIN[2], G.C.DYN_UI.MAIN[3], G.C.DYN_UI.MAIN[4] }
+        G.C.DYN_UI.DARK = { G.C.DYN_UI.DARK[1], G.C.DYN_UI.DARK[2], G.C.DYN_UI.DARK[3], G.C.DYN_UI.DARK[4] }
+        G.C.DYN_UI.BOSS_MAIN = { G.C.DYN_UI.BOSS_MAIN[1], G.C.DYN_UI.BOSS_MAIN[2], G.C.DYN_UI.BOSS_MAIN[3], G.C.DYN_UI.BOSS_MAIN[4] }
+        G.C.DYN_UI.BOSS_DARK = { G.C.DYN_UI.BOSS_DARK[1], G.C.DYN_UI.BOSS_DARK[2], G.C.DYN_UI.BOSS_DARK[3], G.C.DYN_UI.BOSS_DARK[4] }
+        G.GAME.gradient_ui = nil
+    end
+
+    return ref_start_run(...)
 end
 
-local game_start_run = Game.start_run
+local ref_game_start = Game.start_run
 function Game:start_run(args)
-    game_start_run(self, args)
+    G.GAME.gradient_background = nil
+    G.GAME.gradient_ui = nil
+    local ret = ref_game_start(self, args)
+    if (not args or not args.savetext) and G.GAME.modifiers.all_bosses then
+        G.GAME.round_resets.blind_choices.Small = get_new_boss('Small')
+        G.GAME.round_resets.blind_choices.Big = get_new_boss('Big')
+    end
+
+    local obj = G.GAME.blind.config.blind
+    if G.GAME.blind.in_blind and obj.post_load and type(obj.post_load) == 'function' then
+        obj:post_load()
+    end
+
     G.E_MANAGER:add_event(Event({
         trigger = 'immediate',
         func = function()
@@ -2797,6 +2839,22 @@ function Game:start_run(args)
             return true
         end
     }))
+    return ret
+end
+
+
+
+
+
+---------------------------
+--------------------------- Custom scoring calc
+---------------------------
+
+function SMODS.set_scoring_calculation(key)
+    G.GAME.current_scoring_calculation = SMODS.Scoring_Calculations[key]:new()
+    G.FUNCS.SMODS_scoring_calculation_function(G.HUD:get_UIE_by_ID('hand_text_area'))
+    G.HUD:get_UIE_by_ID('hand_operator_container').UIBox:recalculate()
+    SMODS.refresh_score_UI_list()
 end
 
 G.FUNCS.SMODS_scoring_calculation_function = function(e)
@@ -3250,4 +3308,94 @@ function SMODS.spectral_downside(card)
     if flags.prevent_downside then downside = not flags.prevent_downside end
     sendDebugMessage('downside: '..tostring(downside))
 	return downside
+end
+
+function SMODS.predict_gradient(grad, delay)
+    if #grad.colours < 2 then return end
+    local timer = (G.TIMERS.REAL + (delay or 0))%grad.cycle
+    local start_index = math.ceil(timer*#grad.colours/grad.cycle)
+    local end_index = start_index == #grad.colours and 1 or start_index+1
+    local start_colour, end_colour = grad.colours[start_index], grad.colours[end_index]
+    local partial_timer = (timer%(grad.cycle/#grad.colours))*#grad.colours/grad.cycle
+
+    local ret = {0, 0, 0, 1}
+    for i = 1, 4 do
+        if grad.interpolation == 'linear' then
+            ret[i] = start_colour[i] + partial_timer*(end_colour[i]-start_colour[i])
+        elseif grad.interpolation == 'trig' then
+            ret[i] = start_colour[i] + 0.5*(1-math.cos(partial_timer*math.pi))*(end_colour[i]-start_colour[i])
+        end
+    end
+
+    return ret
+end
+
+function SMODS.create_extra_blind(blind_source, blind_type, skip_set_blind)
+    if not G.GAME then return end
+
+    local new_extra_blind = SMODS.init_extra_blind(0, 0, 0, 0, blind_source)
+    if not skip_set_blind and G.GAME.blind.in_blind then
+        new_extra_blind:extra_set_blind(blind_type)
+    else
+        new_extra_blind.config.blind = blind_type
+        new_extra_blind.effect = type(new_extra_blind.config.blind.config) == "table" and copy_table(new_extra_blind.config.blind.config) or {}
+        new_extra_blind.name = blind_type.name
+        new_extra_blind.debuff = blind_type.debuff
+        new_extra_blind.mult = blind_type.mult / 2
+        new_extra_blind.disabled = false
+        new_extra_blind.discards_sub = nil
+        new_extra_blind.hands_sub = nil
+        new_extra_blind.boss = not not blind_type.boss
+        new_extra_blind.blind_set = false
+        new_extra_blind.triggered = nil
+        new_extra_blind.prepped = true
+        new_extra_blind:set_text()
+    end
+
+    G.GAME.extra_blinds[#G.GAME.extra_blinds+1] = new_extra_blind
+    return new_extra_blind
+end
+
+function SMODS.remove_extra_blinds(blind_source)
+    if not G.GAME then return end
+
+    local removed = false
+    for i=#G.GAME.extra_blinds, 1, -1 do
+        if G.GAME.extra_blinds[i].extra_blind == blind_source then
+            -- disable effect more removal
+            local extra_blind = G.GAME.extra_blinds[i]
+            if G.GAME.blind.in_blind then
+                local old_main_blind = G.GAME.blind
+                extra_blind.chips = old_main_blind.chips
+                extra_blind.chip_text = number_format(old_main_blind.chips)
+                extra_blind.dollars = old_main_blind.dollars
+                G.GAME.blind = extra_blind
+
+                extra_blind:disable()
+
+                old_main_blind.chips = extra_blind.chips
+                old_main_blind.chip_text = number_format(extra_blind.chips)
+                old_main_blind.dollars = extra_blind.dollars
+                G.GAME.blind = old_main_blind
+            end
+
+            table.remove(G.GAME.extra_blinds, i)
+
+            if blind_source.ability and type(blind_source.ability) == 'table' then
+                blind_source.ability.blind_type = nil
+            end
+            blind_source.blind_type = nil
+
+            G.E_MANAGER:add_event(Event({
+                trigger = 'after',
+                func = function()
+                    extra_blind:remove()
+                    return true
+                end
+            }))
+            removed = true
+        end
+    end
+
+    return removed
 end
