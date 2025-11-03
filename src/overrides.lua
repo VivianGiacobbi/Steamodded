@@ -3384,17 +3384,32 @@ function get_new_boss(replace_type)
     for k, v in pairs(G.P_BLINDS) do
 		local res, options = SMODS.add_to_pool(v)
         options = options or {}
+        local times_used = G.GAME.bosses_used[k]
 
-        if v.boss and not G.GAME.banned_keys[k] and G.GAME.bosses_used[k] <= min_use then
+        if v.boss and not G.GAME.banned_keys[k] and times_used <= min_use then
 
-            if res and options.ignore_showdown_check or ((get_showdown and v.boss.showdown) or (not get_showdown and not v.boss.showdown and v.boss.min <= math.max(1, G.GAME.round_resets.ante))) then
-                if G.GAME.bosses_used[k] < min_use then
-                    min_use = G.GAME.bosses_used[k]
-                    eligible_bosses = {}
-                end
-                eligible_bosses[k] = true
-                num_bosses = num_bosses + 1
-            end
+			local effects = {}
+			local context = {modify_boss_pool = true, boss_key = k, boss_blind = v}
+			context.main_eval = true
+			SMODS.calculate_card_areas('jokers', context, effects, { joker_area = true })
+			context.main_eval = nil
+
+			-- TARGET: Calculate effects that manipulate boss pool
+
+			local flags = SMODS.trigger_effects(effects, nil)
+
+			local default_checks = (res and options.ignore_showdown_check) or ((get_showdown and v.boss.showdown) or (not get_showdown and not v.boss.showdown and v.boss.min <= math.max(1, G.GAME.round_resets.ante)))
+			-- remove_from_hand trumps add_to_hand
+			local should_add = (not flags.remove_from_hand) and (flags.add_to_hand or default_checks)
+
+			if should_add then
+				if times_used < min_use then
+					min_use = times_used
+					eligible_bosses = {}
+				end
+				eligible_bosses[k] = true
+				num_bosses = num_bosses + 1
+			end
         end
     end
 
