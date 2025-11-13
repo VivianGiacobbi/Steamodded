@@ -2910,6 +2910,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         visible = true,
         played = 0,
         played_this_round = 0,
+        played_this_ante = 0,
         level = 1,
         set = 'PokerHand',
         process_loc_text = function(self)
