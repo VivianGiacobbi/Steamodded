@@ -2930,6 +2930,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                 self.level = self.level
                 self.played = self.played
                 self.played_this_round = self.played_this_round
+                self.played_this_ante = self.played_this_ante
                 self.obj_table[self.key] = self
                 self.obj_buffer[#self.obj_buffer + 1] = self.key
             end
