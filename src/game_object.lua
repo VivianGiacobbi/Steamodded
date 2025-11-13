@@ -2315,9 +2315,6 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                                 cen_pool[#cen_pool + 1] = v
                             end
                         end
-
-                        if #cen_pool == 0 then cen_pool[1] = 'c_base' end
-
                         cards[i] = create_playing_card({
                             front = G.P_CARDS[_suit .. '_' .. _rank],
                             center = pseudorandom_element(cen_pool, pseudoseed('spe_card'))
@@ -2359,7 +2356,6 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                                 cen_pool[#cen_pool + 1] = v
                             end
                         end
-                        if #cen_pool == 0 then cen_pool[1] = 'c_base' end
                         cards[i] = create_playing_card({
                             front = G.P_CARDS[_suit .. '_' .. _rank],
                             center = pseudorandom_element(cen_pool, pseudoseed('spe_card'))
@@ -2401,7 +2397,6 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                                 cen_pool[#cen_pool + 1] = v
                             end
                         end
-                        if #cen_pool == 0 then cen_pool[1] = 'c_base' end
                         cards[i] = create_playing_card({
                             front = G.P_CARDS[_suit .. '_' .. _rank],
                             center = pseudorandom_element(cen_pool, pseudoseed('spe_card'))
