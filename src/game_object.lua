@@ -2332,9 +2332,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                 }))
             end
 
-            if SMODS.spectral_downside() then
-                G.hand:change_size(-1)
-            end
+            G.hand:change_size(-1)
 
             for i = 1, #G.hand.cards do
                 local percent = 0.85 + (i - 0.999) / (#G.hand.cards - 0.998) * 0.3
@@ -2351,10 +2349,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
     })
     local function random_destroy(used_tarot)
         local destroyed_cards = {}
-        local downside = SMODS.spectral_downside(used_tarot)
-        if downside then
-            destroyed_cards[#destroyed_cards + 1] = pseudorandom_element(G.hand.cards, pseudoseed('random_destroy'))
-        end
+        destroyed_cards[#destroyed_cards + 1] = pseudorandom_element(G.hand.cards, pseudoseed('random_destroy'))
         G.E_MANAGER:add_event(Event({
             trigger = 'after',
             delay = 0.4,
@@ -2364,23 +2359,23 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                 return true
             end
         }))
-        if downside then
-            G.E_MANAGER:add_event(Event({
-                trigger = 'after',
-                delay = 0.1,
-                func = function()
-                    for i = #destroyed_cards, 1, -1 do
-                        local card = destroyed_cards[i]
-                        if SMODS.shatters(card) then
-                            card:shatter()
-                        else
-                            card:start_dissolve(nil, i ~= #destroyed_cards)
-                        end
+
+        G.E_MANAGER:add_event(Event({
+            trigger = 'after',
+            delay = 0.1,
+            func = function()
+                for i = #destroyed_cards, 1, -1 do
+                    local card = destroyed_cards[i]
+                    if SMODS.shatters(card) then
+                        card:shatter()
+                    else
+                        card:start_dissolve(nil, i ~= #destroyed_cards)
                     end
-                    return true
                 end
-            }))
-        end
+                return true
+            end
+        }))
+
         return destroyed_cards
     end
 
@@ -2390,7 +2385,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
             local destroyed_cards = random_destroy(used_tarot)
             G.E_MANAGER:add_event(Event({
                 trigger = 'after',
-                delay = #destroyed_cards > 0 and 0.7 or 0,
+                delay = 0.7,
                 func = function()
                     local cards = {}
                     for i = 1, card.ability.extra do
@@ -2399,13 +2394,10 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                             pseudorandom_element(SMODS.Suits, pseudoseed('grim_create')).card_key, 'A'
                         local cen_pool = {}
                         for k, v in pairs(G.P_CENTER_POOLS["Enhanced"]) do
-                            if v.key ~= 'm_stone' and not G.GAME.banned_keys[v.key] and not v.overrides_base_rank then
+                            if v.key ~= 'm_stone' and not v.overrides_base_rank then
                                 cen_pool[#cen_pool + 1] = v
                             end
                         end
-
-                        if #cen_pool == 0 then cen_pool[1] = 'c_base' end
-
                         cards[i] = create_playing_card({
                             front = G.P_CARDS[_suit .. '_' .. _rank],
                             center = pseudorandom_element(cen_pool, pseudoseed('spe_card'))
@@ -2418,9 +2410,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
 
             delay(0.3)
 
-            if #destroyed_cards > 0 then
-                SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
-            end
+            SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
         end
     })
 
@@ -2430,7 +2420,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
             local destroyed_cards = random_destroy(used_tarot)
             G.E_MANAGER:add_event(Event({
                 trigger = 'after',
-                delay = #destroyed_cards > 0 and 0.7 or 0,
+                delay = 0.7,
                 func = function()
                     local cards = {}
                     for i = 1, card.ability.extra do
@@ -2445,11 +2435,10 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                             pseudorandom_element(faces, pseudoseed('familiar_create')).card_key
                         local cen_pool = {}
                         for k, v in pairs(G.P_CENTER_POOLS["Enhanced"]) do
-                            if v.key ~= 'm_stone' and not G.GAME.banned_keys[v.key] and not v.overrides_base_rank then
+                            if v.key ~= 'm_stone' and not v.overrides_base_rank then
                                 cen_pool[#cen_pool + 1] = v
                             end
                         end
-                        if #cen_pool == 0 then cen_pool[1] = 'c_base' end
                         cards[i] = create_playing_card({
                             front = G.P_CARDS[_suit .. '_' .. _rank],
                             center = pseudorandom_element(cen_pool, pseudoseed('spe_card'))
@@ -2462,9 +2451,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
 
             delay(0.3)
 
-            if #destroyed_cards > 0 then
-                SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
-            end
+            SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
         end
     })
 
@@ -2474,7 +2461,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
             local destroyed_cards = random_destroy(used_tarot)
             G.E_MANAGER:add_event(Event({
                 trigger = 'after',
-                delay = #destroyed_cards > 0 and 0.7 or 0,
+                delay = 0.7,
                 func = function()
                     local cards = {}
                     for i=1, card.ability.extra do
@@ -2489,11 +2476,10 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                             pseudorandom_element(numbers, pseudoseed('incantation_create')).card_key
                         local cen_pool = {}
                         for k, v in pairs(G.P_CENTER_POOLS["Enhanced"]) do
-                            if v.key ~= 'm_stone' and not G.GAME.banned_keys[v.key] and not v.overrides_base_rank then
+                            if v.key ~= 'm_stone' and not v.overrides_base_rank then
                                 cen_pool[#cen_pool + 1] = v
                             end
                         end
-                        if #cen_pool == 0 then cen_pool[1] = 'c_base' end
                         cards[i] = create_playing_card({
                             front = G.P_CARDS[_suit .. '_' .. _rank],
                             center = pseudorandom_element(cen_pool, pseudoseed('spe_card'))
@@ -2506,12 +2492,9 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
 
             delay(0.3)
 
-            if #destroyed_cards > 0 then
-                SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
-            end
+            SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
         end
     })
-
 
     SMODS.Consumable:take_ownership('ankh', {
         use = function(self, card, area, copier)
@@ -2535,7 +2518,6 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                 end
             }))
 
-            if not SMODS.spectral_downside(card) then return end
             delay(0.4)
             local deletable_jokers = {}
             for _, v in pairs(G.jokers.cards) do
@@ -2569,14 +2551,12 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                     eligible_card:set_edition({polychrome = true}, true)
                     check_for_unlock({type = 'have_edition'})
 
-                    if SMODS.spectral_downside(card) then
-                        local _first_dissolve = nil
-                        for k, v in pairs(G.jokers.cards) do
-                            if v ~= eligible_card and not SMODS.is_eternal(v, card) then
-                                v:start_dissolve(nil, _first_dissolve)
-                                _first_dissolve = true
+                    local _first_dissolve = nil
+                    for k, v in pairs(G.jokers.cards) do
+                        if v ~= eligible_card and not SMODS.is_eternal(v, card) then
+                            v:start_dissolve(nil, _first_dissolve)
+                            _first_dissolve = true
 
-                            end
                         end
                     end
 
@@ -2598,11 +2578,9 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                     eligible_card:set_edition({negative = true}, true)
                     check_for_unlock({type = 'have_edition'})
 
-                    if SMODS.spectral_downside(card) then
-                        G.GAME.ecto_minus = G.GAME.ecto_minus or 1
-                        G.hand:change_size(-G.GAME.ecto_minus)
-                        G.GAME.ecto_minus = G.GAME.ecto_minus + 1
-                    end
+                    G.GAME.ecto_minus = G.GAME.ecto_minus or 1
+                    G.hand:change_size(-G.GAME.ecto_minus)
+                    G.GAME.ecto_minus = G.GAME.ecto_minus + 1
 
                     card:juice_up(0.3, 0.5)
                     return true
@@ -2623,7 +2601,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                     new_rare:add_to_deck()
                     G.jokers:emplace(new_rare)
                     card:juice_up(0.3, 0.5)
-                    if G.GAME.dollars ~= 0 and SMODS.spectral_downside(card) then
+                    if G.GAME.dollars ~= 0 then
                         ease_dollars(-G.GAME.dollars, true)
                     end
                     return true
@@ -2636,23 +2614,20 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
     SMODS.Consumable:take_ownership('immolate', {
         use = function(self, card, area, copier)
             local destroyed_cards = {}
-            local downside = SMODS.spectral_downside(card)
-            if downside then
-                local temp_hand = {}
-                for _, v in ipairs(G.hand.cards) do
-                    temp_hand[#temp_hand+1] = v
-                end
-                table.sort(temp_hand, function (a, b) return not a.playing_card or not b.playing_card or a.playing_card < b.playing_card end)
-                pseudoshuffle(temp_hand, pseudoseed('immolate'))
+            local temp_hand = {}
+            for _, v in ipairs(G.hand.cards) do
+                temp_hand[#temp_hand+1] = v
+            end
+            table.sort(temp_hand, function (a, b) return not a.playing_card or not b.playing_card or a.playing_card < b.playing_card end)
+            pseudoshuffle(temp_hand, pseudoseed('immolate'))
 
-                for i = 1, card.ability.extra.destroy do
-                    destroyed_cards[#destroyed_cards+1] = temp_hand[i]
-                end
+            for i = 1, card.ability.extra.destroy do
+                destroyed_cards[#destroyed_cards+1] = temp_hand[i]
             end
 
             G.E_MANAGER:add_event(Event({
                 trigger = 'after',
-                delay = downside and 0.4 or 0,
+                delay = 0.4,
                 func = function()
                     play_sound('tarot1')
                     card:juice_up(0.3, 0.5)
@@ -2660,32 +2635,28 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
                 end
             }))
 
-            if downside then
-                G.E_MANAGER:add_event(Event({
-                    trigger = 'after',
-                    delay = 0.1,
-                    func = function()
-                        for i=#destroyed_cards, 1, -1 do
-                            local card = destroyed_cards[i]
-                            if SMODS.shatters(card) then
-                                card:shatter()
-                            else
-                                card:start_dissolve(nil, i == #destroyed_cards)
-                            end
+            G.E_MANAGER:add_event(Event({
+                trigger = 'after',
+                delay = 0.1,
+                func = function()
+                    for i=#destroyed_cards, 1, -1 do
+                        local card = destroyed_cards[i]
+                        if SMODS.shatters(card) then
+                            card:shatter()
+                        else
+                            card:start_dissolve(nil, i == #destroyed_cards)
                         end
-                        return true
                     end
-                }))
-                delay(0.5)
-            end
+                    return true
+                end
+            }))
+            delay(0.5)
 
             ease_dollars(card.ability.extra.dollars)
 
             delay(0.3)
 
-            if downside then
-                SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
-            end
+            SMODS.calculate_context({ remove_playing_cards = true, removed = destroyed_cards })
         end
     })
 

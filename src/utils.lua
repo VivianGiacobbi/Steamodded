@@ -1355,7 +1355,7 @@ SMODS.calculate_individual_effect = function(effect, scored_card, key, amount, f
         return true
     end
 
-    if key == 'prevent_debuff' or key == 'add_to_hand' or key == 'remove_from_hand' or key == 'stay_flipped' or key == 'prevent_stay_flipped' or key == 'prevent_trigger' or key == 'prevent_downside' then
+    if key == 'prevent_debuff' or key == 'add_to_hand' or key == 'remove_from_hand' or key == 'stay_flipped' or key == 'prevent_stay_flipped' or key == 'prevent_trigger' then
         return key
     end
 
@@ -1459,7 +1459,6 @@ SMODS.other_calculation_keys = {
     'add_to_hand', 'remove_from_hand',
     'stay_flipped', 'prevent_stay_flipped',
     'cards_to_draw',
-    'prevent_downside',
     'message',
     'level_up', 'func',
     'numerator', 'denominator',
@@ -1476,7 +1475,6 @@ SMODS.silent_calculation = {
     cards_to_draw = true,
     func = true, extra = true,
     numerator = true, denominator = true,
-    prevent_downside = true,
     no_destroy = true
 }
 
@@ -1823,7 +1821,6 @@ function SMODS.update_context_flags(context, flags)
     if flags.denominator then context.denominator = flags.denominator end
     if flags.cards_to_draw then context.amount = flags.cards_to_draw end
     if flags.saved then context.game_over = false end
-    if flags.prevent_downside then context.downside = false end
     if flags.modify then
         -- insert general modified value updating here
         if context.modify_ante then context.modify_ante = flags.modify end
@@ -3300,14 +3297,6 @@ function CardArea:handle_card_limit(card_limit, card_slots)
             }))
         end
     end
-end
-
-function SMODS.spectral_downside(card)
-    local downside = true
-    local flags = SMODS.calculate_context({spectral_downside = true, card = card, downside = downside})
-    if flags.prevent_downside then downside = not flags.prevent_downside end
-    sendDebugMessage('downside: '..tostring(downside))
-	return downside
 end
 
 function SMODS.predict_gradient(grad, delay)
